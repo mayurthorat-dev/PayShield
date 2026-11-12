@@ -1,5 +1,6 @@
-from datetime import timedelta
+import os
 import secrets
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
@@ -95,7 +96,7 @@ def register_user(request):
         "expires_in_seconds": 300,
     }
 
-    allow_dev_otp = settings.DEBUG or os.getenv("ALLOW_DEV_OTP", "True").lower() in ("true", "1", "yes")
+    allow_dev_otp = getattr(settings, "ALLOW_DEV_OTP", True) or settings.DEBUG
     if allow_dev_otp:
         response_data["dev_otp"] = otp_code
         response_data["warning"] = "Development only: never exposed in production."
@@ -146,7 +147,7 @@ def request_login_otp(request):
     }
 
     # Development-only exposure for testing without SMS gateway
-    allow_dev_otp = settings.DEBUG or os.getenv("ALLOW_DEV_OTP", "True").lower() in ("true", "1", "yes")
+    allow_dev_otp = getattr(settings, "ALLOW_DEV_OTP", True) or settings.DEBUG
     if allow_dev_otp:
         response_data["dev_otp"] = otp_code
         response_data["warning"] = "Development only: never exposed in production."

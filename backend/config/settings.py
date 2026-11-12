@@ -13,6 +13,7 @@ SECRET_KEY = os.getenv(
 )
 
 DEBUG = os.getenv("DEBUG", "True").lower() in ["true", "1", "yes"]
+ALLOW_DEV_OTP = os.getenv("ALLOW_DEV_OTP", "True").lower() in ["true", "1", "yes"]
 
 ALLOWED_HOSTS = [
     "127.0.0.1",

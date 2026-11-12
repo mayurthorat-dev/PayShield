@@ -65,3 +65,4 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.SUCCESS(f"Linked bank account {item['masked_acc']} to {item['name']}."))
 
         self.stdout.write(self.style.SUCCESS("PayShield demo seeding complete!"))
+
