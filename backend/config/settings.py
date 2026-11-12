@@ -96,9 +96,20 @@ if os.getenv("DB_SSL_CA"):
 elif os.getenv("DB_SSL", "").lower() in ["true", "1", "yes"]:
     db_options["ssl"] = {"ssl_mode": "PREFERRED"}
 
+db_engine = os.getenv("DB_ENGINE", "")
+if not db_engine or db_engine == "django.db.backends.mysql":
+    if "tidb" in os.getenv("DB_HOST", "").lower():
+        try:
+            import django_tidb  # noqa: F401
+            db_engine = "django_tidb"
+        except ImportError:
+            db_engine = "django.db.backends.mysql"
+    else:
+        db_engine = "django.db.backends.mysql"
+
 DATABASES = {
     "default": {
-        "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.mysql"),
+        "ENGINE": db_engine,
         "NAME": os.getenv("DB_NAME", "payshield_db"),
         "USER": os.getenv("DB_USER", "payshield_user"),
         "PASSWORD": os.getenv("DB_PASSWORD", "PayShield@2026"),

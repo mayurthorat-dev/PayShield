@@ -10,7 +10,7 @@ def add_active_user_column(apps, schema_editor):
     TiDB Serverless does not support adding a column and a UNIQUE/FK constraint
     in a single ALTER TABLE statement.
     """
-    if schema_editor.connection.vendor == "mysql":
+    if schema_editor.connection.vendor in ("mysql", "tidb"):
         with schema_editor.connection.cursor() as cursor:
             cursor.execute("SHOW COLUMNS FROM accounts_device LIKE 'active_user_id';")
             if not cursor.fetchone():
