@@ -4,6 +4,33 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
+def add_active_user_column(apps, schema_editor):
+    """
+    Executes separate DDL statements for adding a column and its constraints.
+    TiDB Serverless does not support adding a column and a UNIQUE/FK constraint
+    in a single ALTER TABLE statement.
+    """
+    if schema_editor.connection.vendor == "mysql":
+        with schema_editor.connection.cursor() as cursor:
+            cursor.execute("SHOW COLUMNS FROM accounts_device LIKE 'active_user_id';")
+            if not cursor.fetchone():
+                cursor.execute(
+                    "ALTER TABLE accounts_device ADD COLUMN active_user_id bigint NULL;"
+                )
+                try:
+                    cursor.execute(
+                        "ALTER TABLE accounts_device ADD UNIQUE KEY accounts_device_active_user_uniq (active_user_id);"
+                    )
+                except Exception:
+                    pass
+                try:
+                    cursor.execute(
+                        "ALTER TABLE accounts_device ADD CONSTRAINT fk_device_active_user FOREIGN KEY (active_user_id) REFERENCES accounts_payshielduser (id);"
+                    )
+                except Exception:
+                    pass
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -15,30 +42,25 @@ class Migration(migrations.Migration):
             model_name='device',
             name='unique_active_device_per_user',
         ),
-        # Step 1: Add the column as a ForeignKey first (without inline UNIQUE constraint)
-        # This complies with distributed SQL engines (like TiDB Serverless) which forbid
-        # ADD COLUMN with inline UNIQUE constraints in a single ALTER TABLE.
-        migrations.AddField(
-            model_name='device',
-            name='active_user',
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name='+',
-                to='accounts.payshielduser',
-            ),
-        ),
-        # Step 2: Alter the field to OneToOneField (adds the unique constraint as a separate DDL)
-        migrations.AlterField(
-            model_name='device',
-            name='active_user',
-            field=models.OneToOneField(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name='active_device',
-                to='accounts.payshielduser',
-            ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunPython(
+                    add_active_user_column,
+                    reverse_code=migrations.RunPython.noop,
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name='device',
+                    name='active_user',
+                    field=models.OneToOneField(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name='active_device',
+                        to='accounts.payshielduser',
+                    ),
+                ),
+            ],
         ),
     ]
