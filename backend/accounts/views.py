@@ -33,7 +33,10 @@ def _issue_otp_challenge(phone_number: str):
         created_at__gte=fifteen_mins_ago,
     ).count()
 
-    if recent_requests_count >= 5:
+    allow_dev_otp = getattr(settings, "ALLOW_DEV_OTP", True) or settings.DEBUG
+    max_rate_limit = 50 if allow_dev_otp else 5
+
+    if recent_requests_count >= max_rate_limit:
         return None, "Too many verification requests. Please wait a few minutes before trying again."
 
     LoginOTPChallenge.objects.filter(
