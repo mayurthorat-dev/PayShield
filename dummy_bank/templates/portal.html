@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PayShield Demo Bank — Online Banking Portal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Top Navbar -->
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16 items-center">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xl shadow-md shadow-blue-500/20">
+            🏦
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="text-lg font-extrabold text-slate-900 tracking-tight">PayShield Demo Bank</span>
+              <span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Core Banking Simulator</span>
+            </div>
+            <p class="text-xs text-slate-500">Zero-Trust Protected Payment Gateway</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <div class="hidden sm:flex items-center space-x-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-lg">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>CBS Online (Port 8001)</span>
+          </div>
+          <a href="http://127.0.0.1:8000/api/health/" target="_blank" class="hidden sm:flex items-center space-x-2 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition">
+            <span>🛡️ PayShield Engine (Port 8000)</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- Header Banner -->
+    <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 rounded-2xl p-6 sm:p-8 text-white shadow-xl mb-8 relative overflow-hidden">
+      <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl font-black select-none pointer-events-none">₹</div>
+      <div class="max-w-2xl relative z-10">
+        <span class="inline-block bg-blue-500/30 text-blue-100 border border-blue-400/30 text-xs font-bold px-3 py-1 rounded-full mb-3">
+          Simulated Out-of-Band Payment Flow
+        </span>
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-2">Initiate Bank Payment</h1>
+        <p class="text-sm sm:text-base text-blue-100/90 leading-relaxed">
+          Simulate a retail or merchant transaction. Watch the bank verify its transaction OTP, then forward the context to PayShield where the customer approves or denies it from their registered mobile device.
+        </p>
+      </div>
+    </div>
+
+    <!-- Layout Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+      <!-- Left Column: Transfer Form (7 cols) -->
+      <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <h2 class="text-lg font-bold text-slate-900 mb-5 flex items-center">
+          <span class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm mr-2.5">1</span>
+          Payment Details
+        </h2>
+
+        <form id="transferForm" onsubmit="handleInitiatePayment(event)" class="space-y-5">
+          {% csrf_token %}
+
+          <!-- 1. Sender Account -->
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+              Select Debited Bank Account (Sender)
+            </label>
+            <div class="relative">
+              <select id="senderAccountSelect" onchange="onSenderChanged()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                <option value="" disabled selected>Loading 100+ accounts...</option>
+              </select>
+            </div>
+            
+            <!-- Sender Card Preview -->
+            <div id="senderCard" class="mt-2.5 p-3.5 bg-slate-50 border border-slate-200 rounded-xl hidden">
+              <div class="flex justify-between items-center text-xs">
+                <div>
+                  <p class="font-bold text-slate-800" id="senderNameDisplay">-</p>
+                  <p class="text-slate-500" id="senderPhoneDisplay">Phone: -</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-[10px] font-bold text-slate-400 uppercase">Available Balance</p>
+                  <p class="font-black text-emerald-600 text-sm" id="senderBalanceDisplay">₹0.00</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Transfer Type -->
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+              Payment Method
+            </label>
+            <div class="grid grid-cols-3 sm:grid-cols-5 gap-2" id="txTypeGrid">
+              <label class="cursor-pointer">
+                <input type="radio" name="txType" value="UPI" checked class="peer sr-only">
+                <div class="p-2.5 text-center rounded-xl border border-slate-200 peer-checked:border-blue-600 peer-checked:bg-blue-50/70 peer-checked:text-blue-700 transition">
+                  <span class="block text-base mb-0.5">⚡</span>
+                  <span class="text-xs font-bold">UPI</span>
+                </div>
+              </label>
+
+              <label class="cursor-pointer">
+                <input type="radio" name="txType" value="BANK_TRANSFER" class="peer sr-only">
+                <div class="p-2.5 text-center rounded-xl border border-slate-200 peer-checked:border-blue-600 peer-checked:bg-blue-50/70 peer-checked:text-blue-700 transition">
+                  <span class="block text-base mb-0.5">🏦</span>
+                  <span class="text-xs font-bold">IMPS</span>
+                </div>
+              </label>
+
+              <label class="cursor-pointer">
+                <input type="radio" name="txType" value="NEFT" class="peer sr-only">
+                <div class="p-2.5 text-center rounded-xl border border-slate-200 peer-checked:border-blue-600 peer-checked:bg-blue-50/70 peer-checked:text-blue-700 transition">
+                  <span class="block text-base mb-0.5">📄</span>
+                  <span class="text-xs font-bold">NEFT</span>
+                </div>
+              </label>
+
+              <label class="cursor-pointer">
+                <input type="radio" name="txType" value="RTGS" class="peer sr-only">
+                <div class="p-2.5 text-center rounded-xl border border-slate-200 peer-checked:border-blue-600 peer-checked:bg-blue-50/70 peer-checked:text-blue-700 transition">
+                  <span class="block text-base mb-0.5">🚀</span>
+                  <span class="text-xs font-bold">RTGS</span>
+                </div>
+              </label>
+
+              <label class="cursor-pointer">
+                <input type="radio" name="txType" value="GIFT_CARD" class="peer sr-only">
+                <div class="p-2.5 text-center rounded-xl border border-slate-200 peer-checked:border-blue-600 peer-checked:bg-blue-50/70 peer-checked:text-blue-700 transition">
+                  <span class="block text-base mb-0.5">🎁</span>
+                  <span class="text-xs font-bold">Gift Card</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- 3. Beneficiary Selection -->
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+              Select Beneficiary / Recipient
+            </label>
+            <select id="beneficiarySelect" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+              <option value="" disabled selected>Loading beneficiaries...</option>
+            </select>
+          </div>
+
+          <!-- 4. Amount -->
+          <div>
+            <div class="flex justify-between items-center mb-1.5">
+              <label class="text-xs font-bold uppercase tracking-wider text-slate-600">
+                Amount (INR)
+              </label>
+              <div class="flex space-x-1.5">
+                <button type="button" onclick="setAmount('500')" class="text-[11px] font-bold px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-600">₹500</button>
+                <button type="button" onclick="setAmount('1500')" class="text-[11px] font-bold px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-600">₹1,500</button>
+                <button type="button" onclick="setAmount('2500')" class="text-[11px] font-bold px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-600">₹2,500</button>
+                <button type="button" onclick="setAmount('5000')" class="text-[11px] font-bold px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-600">₹5,000</button>
+              </div>
+            </div>
+            <div class="relative">
+              <span class="absolute left-4 top-3 text-slate-400 font-black text-lg">₹</span>
+              <input type="number" step="0.01" min="1" id="amountInput" value="2500.00" required class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-4 py-3 text-base font-black text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="0.00">
+            </div>
+          </div>
+
+          <!-- 5. Remarks -->
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+              Purpose / Description
+            </label>
+            <input type="text" id="descInput" value="Electronics Purchase - Headset" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="e.g. Split bills, Shopping, Rent">
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-blue-500/20 transition flex items-center justify-center space-x-2">
+            <span>Initiate Payment & Generate Bank OTP →</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Right Column: Live Status & Simulation Panels (5 cols) -->
+      <div class="lg:col-span-5 space-y-6">
+
+        <!-- Live Step Tracker -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-400 mb-4">
+            Security Progress Tracker
+          </h3>
+
+          <div class="space-y-4">
+            <!-- Step 1 -->
+            <div class="flex items-start space-x-3" id="step1Box">
+              <div class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center font-bold text-xs mt-0.5" id="step1Icon">1</div>
+              <div>
+                <p class="text-sm font-bold text-slate-800" id="step1Title">Bank Payment Initiated</p>
+                <p class="text-xs text-slate-500" id="step1Desc">Awaiting transaction creation</p>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="flex items-start space-x-3" id="step2Box">
+              <div class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center font-bold text-xs mt-0.5" id="step2Icon">2</div>
+              <div>
+                <p class="text-sm font-bold text-slate-800" id="step2Title">Dummy Bank OTP Verification</p>
+                <p class="text-xs text-slate-500" id="step2Desc">Simulated SMS code check</p>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="flex items-start space-x-3" id="step3Box">
+              <div class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center font-bold text-xs mt-0.5" id="step3Icon">3</div>
+              <div>
+                <p class="text-sm font-bold text-slate-800" id="step3Title">PayShield Mobile Out-of-Band</p>
+                <p class="text-xs text-slate-500" id="step3Desc">Explicit mobile approval within 60s</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Simulated Mobile SMS Phone Card (Popup) -->
+        <div id="smsPhoneCard" class="hidden bg-slate-900 rounded-3xl p-5 text-white shadow-2xl border-4 border-slate-800 relative animate-bounce-short">
+          <div class="flex justify-between items-center mb-3 text-xs text-slate-400">
+            <span class="flex items-center space-x-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span class="font-bold text-slate-300">SIMULATED PHONE SMS NOTIFICATION</span>
+            </span>
+            <span class="text-[11px]">Just now</span>
+          </div>
+
+          <div class="bg-slate-800/80 rounded-2xl p-4 border border-slate-700/60">
+            <div class="flex items-center space-x-2 text-xs font-bold text-blue-400 mb-1">
+              <span>💬</span>
+              <span>Messages • Bank Alert (+91 <span id="smsTargetPhone">9000000001</span>)</span>
+            </div>
+            <p class="text-xs text-slate-200 leading-relaxed font-mono" id="smsContentText">
+              Loading SMS notification...
+            </p>
+            <div class="mt-3 pt-2.5 border-t border-slate-700 flex justify-between items-center">
+              <span class="text-[10px] text-slate-400">Code: <strong class="text-amber-400 text-sm tracking-wider" id="smsOtpCode">------</strong></span>
+              <button onclick="autofillOtp()" class="text-xs font-bold text-blue-400 hover:text-blue-300 underline">
+                Autofill OTP ↓
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- OTP Verification Box (Appears after Step 1) -->
+        <div id="otpVerificationBox" class="hidden bg-white rounded-2xl border-2 border-blue-500 p-6 shadow-md">
+          <div class="flex items-center space-x-2 mb-2">
+            <span class="text-xl">🔐</span>
+            <h3 class="text-base font-extrabold text-slate-900">Verify Bank Transaction OTP</h3>
+          </div>
+          <p class="text-xs text-slate-600 mb-4">
+            Enter the 6-digit transaction code sent to the customer's phone to proceed to PayShield protection.
+          </p>
+
+          <div class="space-y-3">
+            <input type="text" id="bankOtpInput" maxlength="6" class="w-full text-center tracking-[0.4em] font-mono text-2xl font-black py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500" placeholder="••••••">
+
+            <button onclick="handleVerifyBankOtp()" id="verifyOtpBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow-md shadow-emerald-600/20 transition flex items-center justify-center space-x-1.5">
+              <span>Verify Bank OTP & Forward to PayShield ✓</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- PayShield Out-Of-Band Waiting Status Card -->
+        <div id="oobStatusBox" class="hidden bg-white rounded-2xl border border-slate-200 p-6 shadow-md text-center">
+          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 text-2xl mb-3 border border-amber-200" id="statusEmblem">
+            ⏳
+          </div>
+          <h3 class="text-base font-extrabold text-slate-900 mb-1" id="statusHeader">
+            Awaiting Mobile Authorization
+          </h3>
+          <p class="text-xs text-slate-500 mb-4" id="statusSub">
+            Check your PayShield Expo Go mobile app now to Approve or Deny.
+          </p>
+
+          <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 text-left text-xs space-y-1.5 font-mono mb-4">
+            <div class="flex justify-between"><span class="text-slate-400">Status:</span><span class="font-bold text-amber-600" id="liveStatusText">AWAITING_APPROVAL</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Tx Ref:</span><span class="font-bold text-slate-700" id="liveTxRef">-</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Countdown:</span><span class="font-black text-rose-600 text-sm" id="liveCountdownText">60s remaining</span></div>
+          </div>
+
+          <div id="liveFinalBanner" class="hidden p-3.5 rounded-xl font-bold text-xs mb-3"></div>
+
+          <button onclick="resetFlow()" class="text-xs font-bold text-blue-600 hover:text-blue-800 underline">
+            + Initiate Another Payment
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-400">
+    PayShield Security Prototype • Simulated Banking CBS Environment
+  </footer>
+
+  <!-- Client-side Logic -->
+  <script>
+    let portalData = { accounts: [], beneficiaries: [] };
+    let currentTransactionId = null;
+    let currentOtp = null;
+    let pollInterval = null;
+    let countdownInterval = null;
+    let expiresAtEpoch = null;
+
+    function getCsrfToken() {
+      const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+      if (csrfInput && csrfInput.value) return csrfInput.value;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, 10) === 'csrftoken=') {
+            return decodeURIComponent(cookie.substring(10));
+          }
+        }
+      }
+      return '';
+    }
+
+    // Load initial accounts and beneficiaries
+    async function loadPortalData() {
+      try {
+        const res = await fetch('/api/transactions/portal-data/');
+        portalData = await res.json();
+        
+        // Populate Accounts Dropdown
+        const accSelect = document.getElementById('senderAccountSelect');
+        accSelect.innerHTML = '';
+        
+        portalData.accounts.forEach(acc => {
+          const opt = document.createElement('option');
+          opt.value = acc.account_id;
+          opt.textContent = `${acc.customer_name} — ${acc.account_number} (₹${parseFloat(acc.balance).toLocaleString('en-IN')})`;
+          accSelect.appendChild(opt);
+        });
+
+        // Default to Rahul Sharma (account 1) if available
+        const rahulOpt = portalData.accounts.find(a => a.customer_phone === "9000000001");
+        if (rahulOpt) {
+          accSelect.value = rahulOpt.account_id;
+        }
+
+        onSenderChanged();
+
+        // Populate Beneficiaries Dropdown
+        const benSelect = document.getElementById('beneficiarySelect');
+        benSelect.innerHTML = '';
+        portalData.beneficiaries.forEach(b => {
+          const opt = document.createElement('option');
+          opt.value = b.beneficiary_id;
+          opt.textContent = `${b.recipient_name} (${b.recipient_bank_name} •••• ${b.recipient_account_number.slice(-4)})`;
+          benSelect.appendChild(opt);
+        });
+
+      } catch (err) {
+        console.error("Failed to load portal data:", err);
+      }
+    }
+
+    function onSenderChanged() {
+      const accId = document.getElementById('senderAccountSelect').value;
+      const acc = portalData.accounts.find(a => a.account_id == accId);
+      if (!acc) return;
+
+      document.getElementById('senderCard').classList.remove('hidden');
+      document.getElementById('senderNameDisplay').textContent = `${acc.customer_name} (${acc.account_type})`;
+      document.getElementById('senderPhoneDisplay').textContent = `Mobile: +91 ${acc.customer_phone} • ${acc.bank_name}`;
+      document.getElementById('senderBalanceDisplay').textContent = `₹${parseFloat(acc.balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+      document.getElementById('smsTargetPhone').textContent = acc.customer_phone;
+    }
+
+    function setAmount(val) {
+      document.getElementById('amountInput').value = val + ".00";
+    }
+
+    // Step 1: Initiate Payment
+    async function handleInitiatePayment(e) {
+      e.preventDefault();
+      const senderId = document.getElementById('senderAccountSelect').value;
+      const beneficiaryId = document.getElementById('beneficiarySelect').value;
+      const txTypeEl = document.querySelector('input[name="txType"]:checked');
+      const txType = txTypeEl ? txTypeEl.value : 'BANK_TRANSFER';
+      const amount = document.getElementById('amountInput').value;
+      const desc = document.getElementById('descInput').value;
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="animate-spin mr-2">⚙️</span> Initiating...`;
+
+      if (!senderId || isNaN(parseInt(senderId))) {
+        alert('Please select a sender account.');
+        btn.disabled = false;
+        btn.innerHTML = `Initiate Payment & Generate Bank OTP →`;
+        return;
+      }
+      if (!beneficiaryId || isNaN(parseInt(beneficiaryId))) {
+        alert('Please select a recipient / beneficiary.');
+        btn.disabled = false;
+        btn.innerHTML = `Initiate Payment & Generate Bank OTP →`;
+        return;
+      }
+
+      let backendTxType = "BANK_TRANSFER";
+      if (txType === "GIFT_CARD") {
+        backendTxType = "GIFT_CARD";
+      }
+      let finalDesc = desc ? desc.trim() : "";
+      if (txType !== "BANK_TRANSFER" && !finalDesc.startsWith(`[${txType}]`)) {
+        finalDesc = `[${txType}] ${finalDesc}`.trim();
+      }
+
+      try {
+        // 1. Create Transaction
+        const createRes = await fetch('/api/transactions/create/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+          },
+          body: JSON.stringify({
+            sender_account: parseInt(senderId),
+            beneficiary: parseInt(beneficiaryId),
+            transaction_type: backendTxType,
+            amount: amount,
+            description: finalDesc || `Payment via ${txType}`
+          })
+        });
+
+        if (!createRes.ok) {
+          let errData;
+          try {
+            errData = await createRes.json();
+          } catch(e) {
+            errData = { error: `HTTP ${createRes.status} ${createRes.statusText}` };
+          }
+          let msg = errData.error || errData.detail || errData.amount;
+          if (!msg && typeof errData === 'object') {
+            msg = Object.entries(errData)
+              .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+              .join('\n');
+          }
+          alert('Failed to create transaction:\n' + (msg || 'Unknown error'));
+          btn.disabled = false;
+          btn.innerHTML = `Initiate Payment & Generate Bank OTP →`;
+          return;
+        }
+
+        const txData = await createRes.json();
+        currentTransactionId = txData.transaction_id;
+
+        // Update Step 1 Tracker
+        document.getElementById('step1Icon').className = 'w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs mt-0.5';
+        document.getElementById('step1Icon').textContent = '✓';
+        document.getElementById('step1Desc').textContent = `Tx ID: ${currentTransactionId.slice(0, 8)}... created`;
+
+        // 2. Generate OTP
+        const otpRes = await fetch('/api/otp/generate/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+          },
+          body: JSON.stringify({ transaction_id: currentTransactionId })
+        });
+
+        if (!otpRes.ok) {
+          let otpErr;
+          try {
+            otpErr = await otpRes.json();
+          } catch(e) {
+            otpErr = { error: `HTTP ${otpRes.status}` };
+          }
+          alert('Failed to generate bank OTP:\n' + (otpErr.error || 'Server error'));
+          btn.disabled = false;
+          btn.innerHTML = `Initiate Payment & Generate Bank OTP →`;
+          return;
+        }
+
+        const otpData = await otpRes.json();
+        currentOtp = otpData.dev_otp;
+
+        // Display Simulated Phone SMS
+        const acc = portalData.accounts.find(a => a.account_id == senderId);
+        document.getElementById('smsTargetPhone').textContent = acc ? acc.customer_phone : '9000000001';
+        document.getElementById('smsContentText').textContent = 
+          `PayShield Demo Bank: ${currentOtp} is your OTP for payment of INR ${amount} to ${document.getElementById('beneficiarySelect').selectedOptions[0]?.text.split('(')[0].trim()}. Valid for 5 mins. NEVER share OTP.`;
+        document.getElementById('smsOtpCode').textContent = currentOtp;
+        document.getElementById('smsPhoneCard').classList.remove('hidden');
+
+        // Show Verification Box
+        document.getElementById('otpVerificationBox').classList.remove('hidden');
+        document.getElementById('bankOtpInput').focus();
+
+        btn.innerHTML = `Payment Pending OTP Verification...`;
+
+      } catch (err) {
+        alert('Network error: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = `Initiate Payment & Generate Bank OTP →`;
+      }
+    }
+
+    function autofillOtp() {
+      if (currentOtp) {
+        document.getElementById('bankOtpInput').value = currentOtp;
+      }
+    }
+
+    // Step 2: Verify OTP
+    async function handleVerifyBankOtp() {
+      const otp = document.getElementById('bankOtpInput').value.trim();
+      if (otp.length !== 6) {
+        alert('Please enter a 6-digit OTP.');
+        return;
+      }
+
+      const verifyBtn = document.getElementById('verifyOtpBtn');
+      verifyBtn.disabled = true;
+      verifyBtn.innerHTML = `Verifying & Contacting PayShield...`;
+
+      try {
+        const verifyRes = await fetch('/api/otp/verify/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+          },
+          body: JSON.stringify({
+            transaction_id: currentTransactionId,
+            otp: otp
+          })
+        });
+
+        const verifyData = await verifyRes.json();
+
+        if (!verifyRes.ok) {
+          alert('Verification Failed: ' + (verifyData.error || 'Invalid OTP'));
+          verifyBtn.disabled = false;
+          verifyBtn.innerHTML = `Verify Bank OTP & Forward to PayShield ✓`;
+          return;
+        }
+
+        // Update Step 2 Tracker
+        document.getElementById('step2Icon').className = 'w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs mt-0.5';
+        document.getElementById('step2Icon').textContent = '✓';
+        document.getElementById('step2Desc').textContent = 'OTP verified! Context sent to PayShield.';
+
+        // Hide OTP input, show OOB status box
+        document.getElementById('otpVerificationBox').classList.add('hidden');
+        document.getElementById('oobStatusBox').classList.remove('hidden');
+
+        const payshieldInfo = verifyData.payshield || {};
+        document.getElementById('liveTxRef').textContent = payshieldInfo.transaction_ref ? payshieldInfo.transaction_ref.slice(0, 8) + '...' : currentTransactionId.slice(0, 8) + '...';
+        document.getElementById('liveStatusText').textContent = 'AWAITING_APPROVAL';
+
+        // Start 60-second countdown
+        if (payshieldInfo.expires_at) {
+          expiresAtEpoch = new Date(payshieldInfo.expires_at).getTime();
+        } else {
+          expiresAtEpoch = Date.now() + 60000;
+        }
+        startCountdown();
+
+        // Start polling PayShield decision via Dummy Bank
+        startPolling();
+
+      } catch (err) {
+        alert('Error: ' + err.message);
+        verifyBtn.disabled = false;
+        verifyBtn.innerHTML = `Verify Bank OTP & Forward to PayShield ✓`;
+      }
+    }
+
+    function startCountdown() {
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = setInterval(() => {
+        const remaining = Math.max(0, Math.floor((expiresAtEpoch - Date.now()) / 1000));
+        document.getElementById('liveCountdownText').textContent = `${remaining}s remaining`;
+        if (remaining <= 0) {
+          clearInterval(countdownInterval);
+          document.getElementById('liveCountdownText').textContent = 'Expired (0s)';
+        }
+      }, 1000);
+    }
+
+    function startPolling() {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/transactions/${currentTransactionId}/status/`);
+          if (!res.ok) return;
+          const data = await res.json();
+          document.getElementById('liveStatusText').textContent = data.status;
+
+          if (data.status === 'COMPLETED') {
+            stopTracking();
+            // Step 3 Success
+            document.getElementById('step3Icon').className = 'w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs mt-0.5';
+            document.getElementById('step3Icon').textContent = '✓';
+            document.getElementById('step3Desc').textContent = 'Approved by customer on mobile! Completed.';
+
+            document.getElementById('statusEmblem').textContent = '✅';
+            document.getElementById('statusEmblem').className = 'inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 text-2xl mb-3 border border-emerald-200';
+            document.getElementById('statusHeader').textContent = 'Payment Completed!';
+            document.getElementById('statusSub').textContent = 'Customer verified and approved the payment on mobile.';
+
+            const banner = document.getElementById('liveFinalBanner');
+            banner.className = 'p-3.5 rounded-xl font-bold text-xs mb-3 bg-emerald-100 text-emerald-800 border border-emerald-300';
+            banner.textContent = `✓ Funds released. New balance: ₹${parseFloat(data.sender_balance).toLocaleString('en-IN')}`;
+            banner.classList.remove('hidden');
+
+            loadPortalData(); // Refresh balance
+          } else if (data.status === 'CANCELLED') {
+            stopTracking();
+            document.getElementById('step3Icon').className = 'w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center font-bold text-xs mt-0.5';
+            document.getElementById('step3Icon').textContent = '✕';
+            document.getElementById('step3Desc').textContent = 'Transaction Denied or Expired. Cancelled.';
+
+            document.getElementById('statusEmblem').textContent = '🛑';
+            document.getElementById('statusEmblem').className = 'inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 text-2xl mb-3 border border-rose-200';
+            document.getElementById('statusHeader').textContent = 'Payment Denied / Cancelled';
+            document.getElementById('statusSub').textContent = 'Customer denied the transaction or the 60-second window expired.';
+
+            const banner = document.getElementById('liveFinalBanner');
+            banner.className = 'p-3.5 rounded-xl font-bold text-xs mb-3 bg-rose-100 text-rose-800 border border-rose-300';
+            banner.textContent = `✕ Transaction cancelled. No funds were deducted.`;
+            banner.classList.remove('hidden');
+          }
+        } catch (err) {
+          console.error("Polling error:", err);
+        }
+      }, 1500);
+    }
+
+    function stopTracking() {
+      if (pollInterval) clearInterval(pollInterval);
+      if (countdownInterval) clearInterval(countdownInterval);
+    }
+
+    function resetFlow() {
+      stopTracking();
+      currentTransactionId = null;
+      currentOtp = null;
+      document.getElementById('transferForm').reset();
+      document.getElementById('submitBtn').disabled = false;
+      document.getElementById('submitBtn').innerHTML = `Initiate Payment & Generate Bank OTP →`;
+
+      document.getElementById('step1Icon').className = 'w-6 h-6 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center font-bold text-xs mt-0.5';
+      document.getElementById('step1Icon').textContent = '1';
+      document.getElementById('step1Desc').textContent = 'Awaiting transaction creation';
+
+      document.getElementById('step2Icon').className = 'w-6 h-6 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center font-bold text-xs mt-0.5';
+      document.getElementById('step2Icon').textContent = '2';
+      document.getElementById('step2Desc').textContent = 'Simulated SMS code check';
+
+      document.getElementById('step3Icon').className = 'w-6 h-6 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center font-bold text-xs mt-0.5';
+      document.getElementById('step3Icon').textContent = '3';
+      document.getElementById('step3Desc').textContent = 'Explicit mobile approval within 60s';
+
+      document.getElementById('smsPhoneCard').classList.add('hidden');
+      document.getElementById('otpVerificationBox').classList.add('hidden');
+      document.getElementById('oobStatusBox').classList.add('hidden');
+      document.getElementById('liveFinalBanner').classList.add('hidden');
+
+      loadPortalData();
+    }
+
+    // Run on page load
+    window.onload = loadPortalData;
+  </script>
+</body>
+</html>
+
