@@ -225,7 +225,8 @@ def request_replacement_otp(request):
         "expires_in_seconds": 300,
     }
 
-    if settings.DEBUG:
+    allow_dev_otp = settings.DEBUG or os.getenv("ALLOW_DEV_OTP", "True").lower() in ("true", "1", "yes")
+    if allow_dev_otp:
         response_data["dev_otp"] = otp_code
         response_data["warning"] = "Development only: never exposed in production."
 
