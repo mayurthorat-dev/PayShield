@@ -15,9 +15,30 @@ class Migration(migrations.Migration):
             model_name='device',
             name='unique_active_device_per_user',
         ),
+        # Step 1: Add the column as a ForeignKey first (without inline UNIQUE constraint)
+        # This complies with distributed SQL engines (like TiDB Serverless) which forbid
+        # ADD COLUMN with inline UNIQUE constraints in a single ALTER TABLE.
         migrations.AddField(
             model_name='device',
             name='active_user',
-            field=models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='active_device', to='accounts.payshielduser'),
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name='+',
+                to='accounts.payshielduser',
+            ),
+        ),
+        # Step 2: Alter the field to OneToOneField (adds the unique constraint as a separate DDL)
+        migrations.AlterField(
+            model_name='device',
+            name='active_user',
+            field=models.OneToOneField(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name='active_device',
+                to='accounts.payshielduser',
+            ),
         ),
     ]
