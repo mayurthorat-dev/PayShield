@@ -81,17 +81,29 @@ if db_engine in ["sqlite", "sqlite3"] or not os.getenv("DB_NAME"):
         }
     }
 else:
+    db_options = {"charset": "utf8mb4"}
+    if os.getenv("DB_SSL_CA"):
+        db_options["ssl"] = {"ca": os.getenv("DB_SSL_CA")}
+    elif os.getenv("DB_SSL", "").lower() in ["true", "1", "yes"] or "tidb" in os.getenv("DB_HOST", "").lower():
+        db_options["ssl"] = {"ssl_mode": "PREFERRED"}
+
+    engine = "django.db.backends.mysql"
+    if "tidb" in os.getenv("DB_HOST", "").lower():
+        try:
+            import django_tidb  # noqa: F401
+            engine = "django_tidb"
+        except ImportError:
+            engine = "django.db.backends.mysql"
+
     DATABASES = {
         "default": {
-            "ENGINE": "django.db.backends.mysql",
+            "ENGINE": engine,
             "NAME": os.getenv("DB_NAME"),
             "USER": os.getenv("DB_USER"),
             "PASSWORD": os.getenv("DB_PASSWORD"),
             "HOST": os.getenv("DB_HOST", "127.0.0.1"),
             "PORT": os.getenv("DB_PORT", "3306"),
-            "OPTIONS": {
-                "charset": "utf8mb4",
-            },
+            "OPTIONS": db_options,
         }
     }
 

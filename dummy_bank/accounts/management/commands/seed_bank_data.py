@@ -1,4 +1,5 @@
 import random
+import uuid
 from decimal import Decimal
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -48,6 +49,7 @@ class Command(BaseCommand):
             rahul, _ = BankCustomer.objects.get_or_create(
                 phone_number="9000000001",
                 defaults={
+                    "customer_id": uuid.UUID("11111111-1111-1111-1111-111111111101"),
                     "full_name": "Rahul Sharma",
                     "email": "rahul.sharma@payshield.demo",
                     "is_active": True,
@@ -69,6 +71,7 @@ class Command(BaseCommand):
             priya, _ = BankCustomer.objects.get_or_create(
                 phone_number="9000000002",
                 defaults={
+                    "customer_id": uuid.UUID("22222222-2222-2222-2222-222222222202"),
                     "full_name": "Priya Patil",
                     "email": "priya.patil@payshield.demo",
                     "is_active": True,
@@ -112,6 +115,7 @@ class Command(BaseCommand):
                 cust, cust_created = BankCustomer.objects.get_or_create(
                     phone_number=phone,
                     defaults={
+                        "customer_id": uuid.uuid5(uuid.NAMESPACE_DNS, f"payshield-bank-{phone}"),
                         "full_name": full_name,
                         "email": email,
                         "is_active": True,
