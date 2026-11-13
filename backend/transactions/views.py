@@ -53,19 +53,38 @@ def receive_transaction_context(request):
     payshield_user = None
 
     # Resolve customer identity strictly through verified bank account links
-    if bank_customer_id and bank_account_id:
-        linked_account = (
-            LinkedBankAccount.objects.filter(
-                bank_customer_id=bank_customer_id,
-                bank_account_id=bank_account_id,
-                bank_name=source_bank,
-                is_verified=True,
-                is_active=True,
-                user__is_active=True,
+    if bank_account_id:
+        if bank_customer_id:
+            linked_account = (
+                LinkedBankAccount.objects.filter(
+                    bank_customer_id=bank_customer_id,
+                    bank_account_id=bank_account_id,
+                    bank_name=source_bank,
+                    is_verified=True,
+                    is_active=True,
+                    user__is_active=True,
+                )
+                .select_related("user")
+                .first()
             )
-            .select_related("user")
-            .first()
-        )
+
+        # Resilient auto-healing: if UUID re-seeded in bank, resolve by verified account ID and auto-sync UUID
+        if not linked_account:
+            linked_account = (
+                LinkedBankAccount.objects.filter(
+                    bank_account_id=bank_account_id,
+                    bank_name=source_bank,
+                    is_verified=True,
+                    is_active=True,
+                    user__is_active=True,
+                )
+                .select_related("user")
+                .first()
+            )
+            if linked_account and bank_customer_id and str(linked_account.bank_customer_id) != str(bank_customer_id):
+                linked_account.bank_customer_id = bank_customer_id
+                linked_account.save(update_fields=["bank_customer_id"])
+
         if linked_account:
             payshield_user = linked_account.user
 

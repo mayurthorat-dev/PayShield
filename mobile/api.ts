@@ -104,11 +104,14 @@ export interface DiscoveredAccount {
   currency?: string;
   customer_name?: string;
   is_already_linked?: boolean;
+  link_id?: number;
 }
 
 export interface LinkedAccountItem {
   link_id: number;
   bank_name: string;
+  bank_account_id?: number;
+  bank_customer_id?: string;
   account_number_masked: string;
   account_type: string;
   is_verified: boolean;
@@ -269,6 +272,16 @@ export const api = {
           account_number: accountNumber,
           bank_account_id: bankAccountId,
         }),
+      },
+      true
+    );
+  },
+
+  unlinkBankAccount: async (linkId: number): Promise<{ message: string; link_id: number }> => {
+    return apiFetch<{ message: string; link_id: number }>(
+      `/api/banking/accounts/${linkId}/unlink/`,
+      {
+        method: "POST",
       },
       true
     );

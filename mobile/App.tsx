@@ -153,6 +153,7 @@ export default function App() {
   const [discoveredAccounts, setDiscoveredAccounts] = useState<DiscoveredAccount[]>([]);
   const [loadingBankAccounts, setLoadingBankAccounts] = useState(false);
   const [linkingAccountId, setLinkingAccountId] = useState<number | null>(null);
+  const [unlinkingAccountId, setUnlinkingAccountId] = useState<number | null>(null);
 
   // Form states
   const [fullNameInput, setFullNameInput] = useState("");
@@ -450,6 +451,43 @@ export default function App() {
     } finally {
       setLinkingAccountId(null);
     }
+  };
+
+  const handleUnlinkAccount = (linkId: number, bankName: string, accountMasked: string) => {
+    Alert.alert(
+      "Unlink Bank Account",
+      `Are you sure you want to unlink ${bankName} (${accountMasked}) from PayShield?\n\nFuture payments initiated from this account will no longer be intercepted or protected by PayShield Zero-Trust filter.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Unlink Account",
+          style: "destructive",
+          onPress: async () => {
+            setUnlinkingAccountId(linkId);
+            try {
+              await api.unlinkBankAccount(linkId);
+              Alert.alert(
+                "Account Unlinked ✓",
+                `${bankName} (${accountMasked}) was unlinked successfully.`
+              );
+              await loadLinkedAccounts();
+              const disc = await api.discoverBankAccounts().catch(() => ({ accounts: [] }));
+              setDiscoveredAccounts(disc.accounts || []);
+              if (currentUser) {
+                setCurrentUser({
+                  ...currentUser,
+                  linked_accounts_count: Math.max(0, (currentUser.linked_accounts_count || 1) - 1),
+                });
+              }
+            } catch (err: any) {
+              Alert.alert("Unlink Failed", err.message || "Could not unlink account.");
+            } finally {
+              setUnlinkingAccountId(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
   // ---------------------------------------------------------------------------
@@ -1422,113 +1460,182 @@ export default function App() {
         contentContainerStyle={styles.mainScrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* User Identity Card */}
-        <View style={styles.userProfileCard}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarLetter}>
-              {currentUser?.full_name ? currentUser.full_name[0].toUpperCase() : "U"}
-            </Text>
+        {/* Executive Identity & Shield Card */}
+        <View style={styles.heroSecurityCard}>
+          <View style={styles.heroSecurityCardTop}>
+            <View style={styles.heroAvatar}>
+              <Text style={styles.heroAvatarText}>
+                {currentUser?.full_name ? currentUser.full_name[0].toUpperCase() : "P"}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.heroUserName}>
+                {currentUser?.full_name || "PayShield Customer"}
+              </Text>
+              <Text style={styles.heroUserPhone}>
+                {formatPhoneDisplay(currentUser?.phone_number || "")}
+              </Text>
+            </View>
+            <View style={styles.heroStatusBadge}>
+              <View style={styles.heroStatusDot} />
+              <Text style={styles.heroStatusText}>ARMED</Text>
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.userName}>
-              {currentUser?.full_name || "PayShield Customer"}
-            </Text>
-            <Text style={styles.userPhone}>
-              {formatPhoneDisplay(currentUser?.phone_number || "")}
-            </Text>
-          </View>
-          <View style={styles.badgeVerified}>
-            <Text style={styles.badgeVerifiedText}>VERIFIED</Text>
+
+          <View style={styles.heroSecurityDivider} />
+
+          <View style={styles.heroSecurityStatsRow}>
+            <View style={styles.heroStatItem}>
+              <Text style={styles.heroStatLabel}>HARDWARE DEVICE</Text>
+              <Text style={styles.heroStatValue} numberOfLines={1}>
+                {activeDeviceInfo?.device_name || getDeviceDisplayName()}
+              </Text>
+            </View>
+            <View style={styles.heroStatDivider} />
+            <View style={styles.heroStatItem}>
+              <Text style={styles.heroStatLabel}>PROTECTED ACCOUNTS</Text>
+              <Text style={styles.heroStatValue}>
+                {linkedAccounts.length} Connected
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* Bank Accounts UPI Discovery Chip */}
-        <Pressable
-          style={styles.bankChip}
-          onPress={openBankDiscoveryModal}
-        >
-          <Text style={styles.bankChipIcon}>🏦</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.bankChipTitle}>
-              Linked Bank Accounts ({linkedAccounts.length})
-            </Text>
-            <Text style={styles.bankChipSub}>
-              {linkedAccounts.length > 0
-                ? `${linkedAccounts[0].bank_name} •••• ${linkedAccounts[0].account_number_masked.slice(-4)}`
-                : "Tap to discover & link accounts via UPI search"}
-            </Text>
+        {/* Linked Bank Accounts Section */}
+        <View style={styles.sectionHeaderRow}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Text style={styles.sectionTitle}>Linked Bank Accounts</Text>
+            <View style={styles.sectionCountPill}>
+              <Text style={styles.sectionCountText}>{linkedAccounts.length}</Text>
+            </View>
           </View>
-          <View style={styles.bankChipAction}>
-            <Text style={styles.bankChipActionText}>+ LINK BANK</Text>
-          </View>
-        </Pressable>
-
-        {/* Device Binding Chip */}
-        <Pressable
-          style={styles.deviceChip}
-          onPress={() => setShowDeviceModal(true)}
-        >
-          <Text style={styles.deviceChipIcon}>📱</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.deviceChipTitle}>
-              {activeDeviceInfo?.device_name || getDeviceDisplayName()}
-            </Text>
-            <Text style={styles.deviceChipSub}>
-              Sole Authorized Hardware • Bound to this phone
-            </Text>
-          </View>
-          <Text style={styles.deviceChipTag}>ACTIVE ✓</Text>
-        </Pressable>
-
-        {/* Security Shield Banner */}
-        <View style={styles.protectionBanner}>
-          <Text style={styles.bannerIcon}>🔒</Text>
-          <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.bannerTitle}>Zero-Trust Payment Filter Active</Text>
-            <Text style={styles.bannerText}>
-              Transactions from your linked bank accounts require explicit authorization from this verified device before funds leave your account.
-            </Text>
-          </View>
+          <Pressable
+            style={styles.linkNewBankBtn}
+            onPress={openBankDiscoveryModal}
+          >
+            <Text style={styles.linkNewBankBtnText}>+ Link Account</Text>
+          </Pressable>
         </View>
 
-        {/* Quick Vibration & Alert System Test */}
-        <Pressable
-          style={styles.testAlertButton}
-          onPress={async () => {
-            try {
-              // 1. Hardware vibration buzz
-              Vibration.vibrate([0, 500, 200, 500, 200, 500]);
+        {linkedAccounts.length === 0 ? (
+          <Pressable
+            style={styles.emptyBankCard}
+            onPress={openBankDiscoveryModal}
+          >
+            <View style={styles.emptyBankIconBox}>
+              <Text style={{ fontSize: 24 }}>🏦</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.emptyBankTitle}>No Bank Accounts Linked</Text>
+              <Text style={styles.emptyBankSub}>
+                Tap to discover accounts under +91 {currentUser?.phone_number} and activate Zero-Trust payment protection.
+              </Text>
+            </View>
+            <View style={styles.emptyBankActionPill}>
+              <Text style={styles.emptyBankActionText}>+ Link</Text>
+            </View>
+          </Pressable>
+        ) : (
+          linkedAccounts.map((acc) => (
+            <View key={acc.link_id} style={styles.bankAccountCard}>
+              <View style={styles.bankAccountCardTop}>
+                <View style={styles.bankIconCircle}>
+                  <Text style={{ fontSize: 20 }}>🏦</Text>
+                </View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Text style={styles.bankAccountName}>{acc.bank_name}</Text>
+                    <View style={styles.shieldVerifiedBadge}>
+                      <Text style={styles.shieldVerifiedText}>PROTECTED ✓</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.bankAccountMeta}>
+                    {acc.account_type || "SAVINGS"} • {acc.account_number_masked}
+                  </Text>
+                </View>
 
-              // 2. High-priority OS Notification Banner
-              await Notifications.scheduleNotificationAsync({
-                content: {
-                  title: "🛡️ PayShield Alert Active!",
-                  body: "Phone buzz and notification alerts are fully functional on your device.",
-                  sound: "default",
-                  vibrate: [0, 500, 200, 500, 200, 500],
-                  priority: Notifications.AndroidNotificationPriority.MAX,
-                },
-                trigger: { channelId: "payshield-approvals" },
-              });
+                {/* Unlink Action Button */}
+                <Pressable
+                  style={styles.unlinkAccountBtn}
+                  disabled={unlinkingAccountId === acc.link_id}
+                  onPress={() =>
+                    handleUnlinkAccount(
+                      acc.link_id,
+                      acc.bank_name,
+                      acc.account_number_masked
+                    )
+                  }
+                >
+                  <Text style={styles.unlinkAccountBtnText}>
+                    {unlinkingAccountId === acc.link_id ? "..." : "Unlink"}
+                  </Text>
+                </Pressable>
+              </View>
 
-              Alert.alert(
-                "Phone Buzz Active! 🔔",
-                "Your phone vibrated and scheduled an alert banner. The real-time warning system is 100% armed."
-              );
-            } catch (err: any) {
-              Alert.alert("Alert Test", err.message || "Could not trigger alert");
-            }
-          }}
-        >
-          <Text style={styles.testAlertIcon}>🔔</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.testAlertTitle}>Test Vibration & Alert</Text>
-            <Text style={styles.testAlertSub}>Tap to verify sound, vibration & banner</Text>
-          </View>
-          <View style={styles.testAlertBadge}>
-            <Text style={styles.testAlertBadgeText}>TEST BUZZ</Text>
-          </View>
-        </Pressable>
+              <View style={styles.bankAccountCardBottom}>
+                <Text style={styles.bankAccountInterceptStatus}>
+                  🟢 24/7 Zero-Trust Authorization Intercept Active
+                </Text>
+                <Text style={styles.bankAccountRefId}>
+                  ID #{acc.link_id}
+                </Text>
+              </View>
+            </View>
+          ))
+        )}
+
+        {/* Bound Hardware & Quick Vibration / Alert Test */}
+        <View style={styles.hardwareQuickRow}>
+          <Pressable
+            style={styles.hardwareActionCard}
+            onPress={() => setShowDeviceModal(true)}
+          >
+            <Text style={{ fontSize: 18, marginRight: 8 }}>📱</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.hardwareActionTitle}>Bound Hardware</Text>
+              <Text style={styles.hardwareActionSub} numberOfLines={1}>
+                {activeDeviceInfo?.device_name || getDeviceDisplayName()}
+              </Text>
+            </View>
+            <View style={styles.hardwareActiveTag}>
+              <Text style={styles.hardwareActiveTagText}>ACTIVE</Text>
+            </View>
+          </Pressable>
+
+          <Pressable
+            style={styles.hardwareAlertCard}
+            onPress={async () => {
+              try {
+                Vibration.vibrate([0, 500, 200, 500, 200, 500]);
+                await Notifications.scheduleNotificationAsync({
+                  content: {
+                    title: "🛡️ PayShield Alert Active!",
+                    body: "Phone buzz and notification alerts are fully functional on your device.",
+                    sound: "default",
+                    vibrate: [0, 500, 200, 500, 200, 500],
+                    priority: Notifications.AndroidNotificationPriority.MAX,
+                  },
+                  trigger: { channelId: "payshield-approvals" },
+                });
+                Alert.alert(
+                  "Phone Buzz Active! 🔔",
+                  "Your phone vibrated and scheduled an alert banner. The real-time warning system is 100% armed."
+                );
+              } catch (err: any) {
+                Alert.alert("Alert Test", err.message || "Could not trigger alert");
+              }
+            }}
+          >
+            <Text style={{ fontSize: 18, marginRight: 8 }}>🔔</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.hardwareAlertTitle}>Test Alert Buzz</Text>
+              <Text style={styles.hardwareAlertSub}>Verify vibration & sound</Text>
+            </View>
+            <View style={styles.alertBuzzBadge}>
+              <Text style={styles.alertBuzzBadgeText}>TEST</Text>
+            </View>
+          </Pressable>
+        </View>
 
         {/* Feed Tab Selector (Pending vs History) */}
         <View style={styles.tabContainer}>
@@ -1928,8 +2035,36 @@ export default function App() {
                       </View>
 
                       {acc.is_already_linked ? (
-                        <View style={styles.linkedBadge}>
-                          <Text style={styles.linkedBadgeText}>LINKED ✓</Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          <View style={styles.linkedBadge}>
+                            <Text style={styles.linkedBadgeText}>LINKED ✓</Text>
+                          </View>
+                          <Pressable
+                            style={styles.modalUnlinkBtn}
+                            disabled={unlinkingAccountId !== null}
+                            onPress={() => {
+                              const linkId =
+                                acc.link_id ||
+                                linkedAccounts.find(
+                                  (l) => l.bank_account_id === acc.bank_account_id
+                                )?.link_id;
+                              if (linkId) {
+                                handleUnlinkAccount(
+                                  linkId,
+                                  acc.bank_name,
+                                  acc.account_number_masked
+                                );
+                              } else {
+                                Alert.alert("Notice", "Account link reference not found. Please refresh.");
+                              }
+                            }}
+                          >
+                            <Text style={styles.modalUnlinkBtnText}>
+                              {unlinkingAccountId === (acc.link_id || linkedAccounts.find((l) => l.bank_account_id === acc.bank_account_id)?.link_id)
+                                ? "..."
+                                : "Unlink"}
+                            </Text>
+                          </Pressable>
                         </View>
                       ) : (
                         <Pressable
@@ -2969,92 +3104,279 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // User Profile Card
-  userProfileCard: {
+  // Executive Hero Security Card
+  heroSecurityCard: {
+    backgroundColor: "#0F172A",
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#1E293B",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  heroSecurityCardTop: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  heroAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#1E293B",
+    borderWidth: 1.5,
+    borderColor: "#38BDF8",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  heroAvatarText: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#38BDF8",
+  },
+  heroUserName: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  heroUserPhone: {
+    fontSize: 12,
+    color: "#94A3B8",
+    marginTop: 2,
+    letterSpacing: 0.5,
+  },
+  heroStatusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#064E3B",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#059669",
+  },
+  heroStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#10B981",
+    marginRight: 6,
+  },
+  heroStatusText: {
+    fontSize: 10,
+    fontWeight: "900",
+    color: "#34D399",
+    letterSpacing: 1,
+  },
+  heroSecurityDivider: {
+    height: 1,
+    backgroundColor: "#1E293B",
+    marginVertical: 14,
+  },
+  heroSecurityStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  heroStatItem: {
+    flex: 1,
+  },
+  heroStatDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: "#1E293B",
+    marginHorizontal: 12,
+  },
+  heroStatLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#64748B",
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  heroStatValue: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#E2E8F0",
+  },
+
+  // Bank Accounts Section
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0F172A",
+    letterSpacing: 0.2,
+  },
+  sectionCountPill: {
+    backgroundColor: "#E2E8F0",
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 6,
+  },
+  sectionCountText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#334155",
+  },
+  linkNewBankBtn: {
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  linkNewBankBtnText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#2563EB",
+  },
+  emptyBankCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: "#BFDBFE",
+    borderStyle: "dashed",
+    marginBottom: 14,
+  },
+  emptyBankIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: "#EFF6FF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  emptyBankTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#1E3A8A",
+  },
+  emptyBankSub: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  emptyBankActionPill: {
+    backgroundColor: "#2563EB",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  emptyBankActionText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  bankAccountCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     marginBottom: 10,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  avatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#2563EB",
+  bankAccountCardTop: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  bankIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: "#F1F5F9",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
   },
-  avatarLetter: {
-    fontSize: 18,
+  bankAccountName: {
+    fontSize: 14,
     fontWeight: "800",
-    color: "#FFFFFF",
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: "700",
     color: "#0F172A",
   },
-  userPhone: {
-    fontSize: 13,
+  shieldVerifiedBadge: {
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#86EFAC",
+  },
+  shieldVerifiedText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#15803D",
+    letterSpacing: 0.5,
+  },
+  bankAccountMeta: {
+    fontSize: 12,
     color: "#64748B",
     marginTop: 2,
   },
-  badgeVerified: {
-    backgroundColor: "#DCFCE7",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  badgeVerifiedText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#16A34A",
-  },
-
-  // Bank Discovery Chip (PhonePe/UPI Style)
-  bankChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 12,
-    padding: 12,
+  unlinkAccountBtn: {
+    backgroundColor: "#FEF2F2",
     borderWidth: 1,
-    borderColor: "#BFDBFE",
-    backgroundColor: "#F0F7FF",
-    marginBottom: 10,
-  },
-  bankChipIcon: {
-    fontSize: 22,
-    marginRight: 10,
-  },
-  bankChipTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#1E3A8A",
-  },
-  bankChipSub: {
-    fontSize: 11,
-    color: "#3B82F6",
-    marginTop: 1,
-  },
-  bankChipAction: {
-    backgroundColor: "#2563EB",
+    borderColor: "#FECACA",
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 6,
+    borderRadius: 8,
+    marginLeft: 8,
   },
-  bankChipActionText: {
-    fontSize: 10,
+  unlinkAccountBtnText: {
+    fontSize: 11,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: "#DC2626",
+  },
+  bankAccountCardBottom: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+  },
+  bankAccountInterceptStatus: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#059669",
+  },
+  bankAccountRefId: {
+    fontSize: 10,
+    color: "#94A3B8",
+    fontWeight: "600",
   },
 
-  // Device Chip
-  deviceChip: {
+  // Bound Hardware & Alert Quick Row
+  hardwareQuickRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 16,
+    marginTop: 4,
+  },
+  hardwareActionCard: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
@@ -3062,33 +3384,65 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: "#E2E8F0",
-    marginBottom: 10,
   },
-  deviceChipIcon: {
-    fontSize: 20,
-    marginRight: 10,
-  },
-  deviceChipTitle: {
-    fontSize: 13,
-    fontWeight: "700",
+  hardwareActionTitle: {
+    fontSize: 12,
+    fontWeight: "800",
     color: "#0F172A",
   },
-  deviceChipSub: {
-    fontSize: 11,
+  hardwareActionSub: {
+    fontSize: 10,
     color: "#64748B",
     marginTop: 1,
   },
-  deviceChipTag: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#16A34A",
+  hardwareActiveTag: {
     backgroundColor: "#DCFCE7",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#86EFAC",
+    marginLeft: 6,
+  },
+  hardwareActiveTagText: {
+    fontSize: 8,
+    fontWeight: "900",
+    color: "#15803D",
+  },
+  hardwareAlertCard: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF3C7",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+  },
+  hardwareAlertTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#92400E",
+  },
+  hardwareAlertSub: {
+    fontSize: 10,
+    color: "#B45309",
+    marginTop: 1,
+  },
+  alertBuzzBadge: {
+    backgroundColor: "#F59E0B",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 6,
+  },
+  alertBuzzBadgeText: {
+    fontSize: 9,
+    fontWeight: "900",
+    color: "#FFFFFF",
   },
 
-  // Protection Banner
+  // Protection & Info Banners
   protectionBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -3112,43 +3466,6 @@ const styles = StyleSheet.create({
     color: "#3B82F6",
     lineHeight: 16,
     marginTop: 2,
-  },
-
-  // Test Alert Button
-  testAlertButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FEF3C7",
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#FDE68A",
-    marginBottom: 16,
-  },
-  testAlertIcon: {
-    fontSize: 20,
-    marginRight: 10,
-  },
-  testAlertTitle: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#92400E",
-  },
-  testAlertSub: {
-    fontSize: 11,
-    color: "#B45309",
-    marginTop: 1,
-  },
-  testAlertBadge: {
-    backgroundColor: "#F59E0B",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  testAlertBadgeText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#FFFFFF",
   },
 
   // Feed Section Header
@@ -3520,6 +3837,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     color: "#FFFFFF",
+  },
+  modalUnlinkBtn: {
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  modalUnlinkBtnText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#DC2626",
   },
 
   // Feed Tab Switcher

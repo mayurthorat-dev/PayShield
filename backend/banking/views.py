@@ -293,16 +293,19 @@ def discover_bank_accounts(request):
         )
 
     # Get already linked account IDs for this user
-    already_linked_ids = set(
-        LinkedBankAccount.objects.filter(
+    linked_map = {
+        l.bank_account_id: l.link_id
+        for l in LinkedBankAccount.objects.filter(
             user=user,
             is_active=True,
-        ).values_list("bank_account_id", flat=True)
-    )
+        )
+    }
 
     discovered_list = bank_data.get("accounts", [])
     for acc in discovered_list:
-        acc["is_already_linked"] = acc["bank_account_id"] in already_linked_ids
+        link_id = linked_map.get(acc.get("bank_account_id"))
+        acc["is_already_linked"] = link_id is not None
+        acc["link_id"] = link_id
 
     return Response({
         "phone_number": user.phone_number,
@@ -367,6 +370,9 @@ def link_discovered_account(request):
                 {"error": "This bank account is already linked to another PayShield user."},
                 status=status.HTTP_409_CONFLICT,
             )
+        if existing_link.bank_customer_id != bank_cust_id:
+            existing_link.bank_customer_id = bank_cust_id
+            existing_link.save(update_fields=["bank_customer_id"])
         if not existing_link.is_verified:
             existing_link.mark_verified()
         return Response(
@@ -395,5 +401,38 @@ def link_discovered_account(request):
             "link": LinkedBankAccountSerializer(link).data,
         },
         status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(["POST", "DELETE"])
+@permission_classes([IsAuthenticated])
+def unlink_account(request, link_id):
+    """
+    Deactivates / unlinks a registered bank account for the authenticated PayShield user.
+    """
+    user = _get_target_user(request)
+    if not user:
+        return Response(
+            {"error": "Authenticated user is not registered as a PayShield customer."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    link = LinkedBankAccount.objects.filter(link_id=link_id, user=user).first()
+    if not link:
+        return Response(
+            {"error": "Linked bank account not found."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    link.is_active = False
+    link.verification_status = "REVOKED"
+    link.save(update_fields=["is_active", "verification_status"])
+
+    return Response(
+        {
+            "message": "Bank account unlinked successfully.",
+            "link_id": link_id,
+        },
+        status=status.HTTP_200_OK,
     )
 
