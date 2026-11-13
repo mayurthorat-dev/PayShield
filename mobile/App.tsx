@@ -1429,19 +1429,30 @@ export default function App() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Top Navigation Bar */}
+      {/* PhonePe / Paytm Style Top Bar */}
       <View style={styles.topBar}>
-        <View style={styles.brandRow}>
-          <View style={styles.smallLogo}>
-            <Text style={{ fontSize: 16 }}>🛡️</Text>
+        <View style={styles.userProfileHeader}>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarLetter}>
+              {currentUser?.full_name ? currentUser.full_name[0].toUpperCase() : "U"}
+            </Text>
           </View>
-          <View>
-            <Text style={styles.topBarBrand}>PayShield</Text>
-            <Text style={styles.topBarSub}>PROTECTION ACTIVE</Text>
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text style={styles.userName} numberOfLines={1}>
+                {currentUser?.full_name || "PayShield User"}
+              </Text>
+              <View style={styles.verifiedTickCircle}>
+                <Text style={{ fontSize: 9, color: "#FFFFFF", fontWeight: "900" }}>✓</Text>
+              </View>
+            </View>
+            <Text style={styles.userPhone}>
+              +91 {formatPhoneDisplay(currentUser?.phone_number || "")}
+            </Text>
           </View>
         </View>
 
-        <View style={{ flexDirection: "row", gap: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <Pressable
             style={styles.deviceManageBtn}
             onPress={() => setShowDeviceModal(true)}
@@ -1460,150 +1471,53 @@ export default function App() {
         contentContainerStyle={styles.mainScrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Executive Identity & Shield Card */}
-        <View style={styles.heroSecurityCard}>
-          <View style={styles.heroSecurityCardTop}>
-            <View style={styles.heroAvatar}>
-              <Text style={styles.heroAvatarText}>
-                {currentUser?.full_name ? currentUser.full_name[0].toUpperCase() : "P"}
-              </Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.heroUserName}>
-                {currentUser?.full_name || "PayShield Customer"}
-              </Text>
-              <Text style={styles.heroUserPhone}>
-                {formatPhoneDisplay(currentUser?.phone_number || "")}
-              </Text>
-            </View>
-            <View style={styles.heroStatusBadge}>
-              <View style={styles.heroStatusDot} />
-              <Text style={styles.heroStatusText}>ARMED</Text>
-            </View>
+        {/* PhonePe-Style Security Guard Banner */}
+        <View style={styles.guardBanner}>
+          <View style={styles.guardBannerIconBox}>
+            <Text style={{ fontSize: 22 }}>🛡️</Text>
           </View>
-
-          <View style={styles.heroSecurityDivider} />
-
-          <View style={styles.heroSecurityStatsRow}>
-            <View style={styles.heroStatItem}>
-              <Text style={styles.heroStatLabel}>HARDWARE DEVICE</Text>
-              <Text style={styles.heroStatValue} numberOfLines={1}>
-                {activeDeviceInfo?.device_name || getDeviceDisplayName()}
-              </Text>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={styles.guardBannerTitle}>Zero-Trust Protection</Text>
+              <View style={styles.guardActiveBadge}>
+                <View style={styles.guardActiveDot} />
+                <Text style={styles.guardActiveText}>ACTIVE</Text>
+              </View>
             </View>
-            <View style={styles.heroStatDivider} />
-            <View style={styles.heroStatItem}>
-              <Text style={styles.heroStatLabel}>PROTECTED ACCOUNTS</Text>
-              <Text style={styles.heroStatValue}>
-                {linkedAccounts.length} Connected
-              </Text>
-            </View>
+            <Text style={styles.guardBannerSub}>
+              Transactions from your linked banks require explicit 1-tap confirmation on this phone.
+            </Text>
           </View>
         </View>
 
-        {/* Linked Bank Accounts Section */}
-        <View style={styles.sectionHeaderRow}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text style={styles.sectionTitle}>Linked Bank Accounts</Text>
-            <View style={styles.sectionCountPill}>
-              <Text style={styles.sectionCountText}>{linkedAccounts.length}</Text>
-            </View>
-          </View>
+        {/* Quick Action Tiles (PhonePe Services Row) */}
+        <View style={styles.servicesGrid}>
           <Pressable
-            style={styles.linkNewBankBtn}
+            style={styles.serviceTile}
             onPress={openBankDiscoveryModal}
           >
-            <Text style={styles.linkNewBankBtnText}>+ Link Account</Text>
+            <View style={[styles.serviceTileIcon, { backgroundColor: "#F3E8FF" }]}>
+              <Text style={{ fontSize: 18 }}>🏦</Text>
+            </View>
+            <Text style={styles.serviceTileTitle}>Bank A/cs</Text>
+            <Text style={styles.serviceTileSub}>{linkedAccounts.length} Linked</Text>
           </Pressable>
-        </View>
 
-        {linkedAccounts.length === 0 ? (
           <Pressable
-            style={styles.emptyBankCard}
-            onPress={openBankDiscoveryModal}
-          >
-            <View style={styles.emptyBankIconBox}>
-              <Text style={{ fontSize: 24 }}>🏦</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.emptyBankTitle}>No Bank Accounts Linked</Text>
-              <Text style={styles.emptyBankSub}>
-                Tap to discover accounts under +91 {currentUser?.phone_number} and activate Zero-Trust payment protection.
-              </Text>
-            </View>
-            <View style={styles.emptyBankActionPill}>
-              <Text style={styles.emptyBankActionText}>+ Link</Text>
-            </View>
-          </Pressable>
-        ) : (
-          linkedAccounts.map((acc) => (
-            <View key={acc.link_id} style={styles.bankAccountCard}>
-              <View style={styles.bankAccountCardTop}>
-                <View style={styles.bankIconCircle}>
-                  <Text style={{ fontSize: 20 }}>🏦</Text>
-                </View>
-                <View style={{ flex: 1, marginLeft: 10 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                    <Text style={styles.bankAccountName}>{acc.bank_name}</Text>
-                    <View style={styles.shieldVerifiedBadge}>
-                      <Text style={styles.shieldVerifiedText}>PROTECTED ✓</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.bankAccountMeta}>
-                    {acc.account_type || "SAVINGS"} • {acc.account_number_masked}
-                  </Text>
-                </View>
-
-                {/* Unlink Action Button */}
-                <Pressable
-                  style={styles.unlinkAccountBtn}
-                  disabled={unlinkingAccountId === acc.link_id}
-                  onPress={() =>
-                    handleUnlinkAccount(
-                      acc.link_id,
-                      acc.bank_name,
-                      acc.account_number_masked
-                    )
-                  }
-                >
-                  <Text style={styles.unlinkAccountBtnText}>
-                    {unlinkingAccountId === acc.link_id ? "..." : "Unlink"}
-                  </Text>
-                </Pressable>
-              </View>
-
-              <View style={styles.bankAccountCardBottom}>
-                <Text style={styles.bankAccountInterceptStatus}>
-                  🟢 24/7 Zero-Trust Authorization Intercept Active
-                </Text>
-                <Text style={styles.bankAccountRefId}>
-                  ID #{acc.link_id}
-                </Text>
-              </View>
-            </View>
-          ))
-        )}
-
-        {/* Bound Hardware & Quick Vibration / Alert Test */}
-        <View style={styles.hardwareQuickRow}>
-          <Pressable
-            style={styles.hardwareActionCard}
+            style={styles.serviceTile}
             onPress={() => setShowDeviceModal(true)}
           >
-            <Text style={{ fontSize: 18, marginRight: 8 }}>📱</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.hardwareActionTitle}>Bound Hardware</Text>
-              <Text style={styles.hardwareActionSub} numberOfLines={1}>
-                {activeDeviceInfo?.device_name || getDeviceDisplayName()}
-              </Text>
+            <View style={[styles.serviceTileIcon, { backgroundColor: "#EFF6FF" }]}>
+              <Text style={{ fontSize: 18 }}>📱</Text>
             </View>
-            <View style={styles.hardwareActiveTag}>
-              <Text style={styles.hardwareActiveTagText}>ACTIVE</Text>
-            </View>
+            <Text style={styles.serviceTileTitle}>Hardware</Text>
+            <Text style={styles.serviceTileSub} numberOfLines={1}>
+              {activeDeviceInfo?.device_name ? activeDeviceInfo.device_name.slice(0, 10) : "Bound"}
+            </Text>
           </Pressable>
 
           <Pressable
-            style={styles.hardwareAlertCard}
+            style={styles.serviceTile}
             onPress={async () => {
               try {
                 Vibration.vibrate([0, 500, 200, 500, 200, 500]);
@@ -1626,16 +1540,87 @@ export default function App() {
               }
             }}
           >
-            <Text style={{ fontSize: 18, marginRight: 8 }}>🔔</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.hardwareAlertTitle}>Test Alert Buzz</Text>
-              <Text style={styles.hardwareAlertSub}>Verify vibration & sound</Text>
+            <View style={[styles.serviceTileIcon, { backgroundColor: "#FEF3C7" }]}>
+              <Text style={{ fontSize: 18 }}>🔔</Text>
             </View>
-            <View style={styles.alertBuzzBadge}>
-              <Text style={styles.alertBuzzBadgeText}>TEST</Text>
-            </View>
+            <Text style={styles.serviceTileTitle}>Test Buzz</Text>
+            <Text style={styles.serviceTileSub}>Verify Siren</Text>
           </Pressable>
         </View>
+
+        {/* Linked Bank Accounts */}
+        <View style={styles.sectionHeaderRow}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Text style={styles.sectionTitle}>Bank Accounts</Text>
+            <View style={styles.sectionCountPill}>
+              <Text style={styles.sectionCountText}>{linkedAccounts.length}</Text>
+            </View>
+          </View>
+          <Pressable
+            style={styles.linkNewBankBtn}
+            onPress={openBankDiscoveryModal}
+          >
+            <Text style={styles.linkNewBankBtnText}>+ Add Bank</Text>
+          </Pressable>
+        </View>
+
+        {linkedAccounts.length === 0 ? (
+          <Pressable
+            style={styles.emptyBankCard}
+            onPress={openBankDiscoveryModal}
+          >
+            <View style={styles.emptyBankIconBox}>
+              <Text style={{ fontSize: 24 }}>🏦</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.emptyBankTitle}>Link Your Bank Account</Text>
+              <Text style={styles.emptyBankSub}>
+                Connect accounts under +91 {currentUser?.phone_number} to intercept & protect payments.
+              </Text>
+            </View>
+            <View style={styles.emptyBankActionPill}>
+              <Text style={styles.emptyBankActionText}>+ Link</Text>
+            </View>
+          </Pressable>
+        ) : (
+          linkedAccounts.map((acc) => (
+            <View key={acc.link_id} style={styles.bankAccountCard}>
+              <View style={styles.bankAccountCardTop}>
+                <View style={styles.bankIconCircle}>
+                  <Text style={{ fontSize: 20 }}>🏦</Text>
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.bankAccountName}>{acc.bank_name}</Text>
+                  <Text style={styles.bankAccountMeta}>
+                    {acc.account_type || "SAVINGS"} A/C • {acc.account_number_masked}
+                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+                    <Text style={{ fontSize: 11, color: "#059669", fontWeight: "700" }}>
+                      ● 24/7 Zero-Trust Protected
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Unlink Action Button */}
+                <Pressable
+                  style={styles.unlinkAccountBtn}
+                  disabled={unlinkingAccountId === acc.link_id}
+                  onPress={() =>
+                    handleUnlinkAccount(
+                      acc.link_id,
+                      acc.bank_name,
+                      acc.account_number_masked
+                    )
+                  }
+                >
+                  <Text style={styles.unlinkAccountBtnText}>
+                    {unlinkingAccountId === acc.link_id ? "..." : "Unlink"}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          ))
+        )}
 
         {/* Feed Tab Selector (Pending vs History) */}
         <View style={styles.tabContainer}>
@@ -1652,7 +1637,7 @@ export default function App() {
                 feedTab === "PENDING" && styles.tabButtonTextActive,
               ]}
             >
-              ⏳ Pending ({approvals.filter((a) => a.status === "PENDING").length})
+              Pending ({approvals.filter((a) => a.status === "PENDING").length})
             </Text>
           </Pressable>
 
@@ -1669,26 +1654,16 @@ export default function App() {
                 feedTab === "HISTORY" && styles.tabButtonTextActive,
               ]}
             >
-              📜 History ({historyApprovals.length})
+              History / Passbook ({historyApprovals.length})
             </Text>
           </Pressable>
         </View>
 
         {/* Approvals & History Feed Header */}
         <View style={styles.feedHeaderRow}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text style={styles.feedTitle}>
-              {feedTab === "PENDING" ? "Payment Approvals" : "Transaction History"}
-            </Text>
-            {feedTab === "PENDING" &&
-              approvals.filter((a) => a.status === "PENDING").length > 0 && (
-                <View style={styles.badgePendingCount}>
-                  <Text style={styles.pendingCountText}>
-                    {approvals.filter((a) => a.status === "PENDING").length}
-                  </Text>
-                </View>
-              )}
-          </View>
+          <Text style={styles.feedTitle}>
+            {feedTab === "PENDING" ? "Payment Requests" : "Transaction Passbook"}
+          </Text>
 
           <Pressable
             style={styles.refreshButton}
@@ -1709,7 +1684,7 @@ export default function App() {
         {feedTab === "PENDING" && (
           loadingApprovals && approvals.length === 0 ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator size="small" color="#2563EB" />
+              <ActivityIndicator size="small" color="#5F259F" />
               <Text style={styles.loadingText}>Fetching payment requests...</Text>
             </View>
           ) : approvals.length === 0 ? (
@@ -1732,17 +1707,13 @@ export default function App() {
               return (
                 <Pressable
                   key={item.id}
-                  style={styles.approvalCard}
+                  style={styles.collectRequestCard}
                   onPress={() => setSelectedApproval(item)}
                 >
-                  <View style={styles.cardHeader}>
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                      <Text style={styles.bankTag}>{item.source_bank || "Dummy Bank"}</Text>
-                      {item.transaction_type && (
-                        <Text style={styles.typeTag}>{item.transaction_type}</Text>
-                      )}
-                    </View>
-
+                  <View style={styles.collectTopStrip}>
+                    <Text style={styles.collectTopStripText}>
+                      ⚡ PAYMENT AUTHORIZATION
+                    </Text>
                     <View
                       style={[
                         styles.statusPill,
@@ -1766,61 +1737,70 @@ export default function App() {
                     </View>
                   </View>
 
-                  <View style={styles.cardBody}>
-                    <Text style={styles.amountLabel}>AMOUNT</Text>
-                    <Text style={styles.amountValue}>
-                      {item.currency || "INR"} ₹{item.amount}
-                    </Text>
-                    <Text style={styles.recipientRow}>
-                      Paying to:{" "}
-                      <Text style={{ fontWeight: "700", color: "#0F172A" }}>
-                        {item.recipient_name || "Merchant"}
-                      </Text>
-                    </Text>
-                    {item.sender_account_masked && (
-                      <Text style={styles.accountRow}>
-                        From Account: {item.sender_account_masked}
-                      </Text>
-                    )}
-                  </View>
+                  <View style={styles.collectBody}>
+                    <View style={styles.collectMerchantRow}>
+                      <View style={styles.merchantIconBox}>
+                        <Text style={{ fontSize: 20 }}>🛍️</Text>
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={styles.collectPayingToLabel}>Paying to</Text>
+                        <Text style={styles.collectRecipientName}>
+                          {item.recipient_name || "Merchant"}
+                        </Text>
+                        {item.sender_account_masked ? (
+                          <Text style={styles.collectFromAccount}>
+                            From: {item.source_bank || "Bank"} ({item.sender_account_masked})
+                          </Text>
+                        ) : null}
+                      </View>
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text style={styles.collectAmount}>
+                          ₹{item.amount}
+                        </Text>
+                        <Text style={styles.collectCurrency}>
+                          {item.currency || "INR"}
+                        </Text>
+                      </View>
+                    </View>
 
-                  <View style={styles.cardFooter}>
                     {effectiveStatus === "PENDING" ? (
-                      <View style={styles.countdownRow}>
-                        <Text style={styles.countdownTimer}>⏱️ Expires in {remainingSecs}s</Text>
+                      <View style={styles.collectTimerRow}>
+                        <Text style={styles.collectTimerText}>
+                          ⏱️ Auto-declines in <Text style={{ fontWeight: "800" }}>{remainingSecs}s</Text>
+                        </Text>
+                        <Text style={styles.collectReviewLink}>Tap to review →</Text>
                       </View>
                     ) : (
                       <Text style={styles.resolvedNote}>
-                        Request finalized ({effectiveStatus.toLowerCase()})
+                        Request {effectiveStatus.toLowerCase()}
                       </Text>
                     )}
-                    <Text style={styles.viewDetailsLink}>Review Details →</Text>
                   </View>
 
                   {effectiveStatus === "PENDING" && (
-                    <View style={styles.cardActionRow}>
+                    <View style={styles.collectActionRow}>
                       <Pressable
-                        style={[styles.actionBtn, styles.btnApprove]}
-                        disabled={decidingId !== null}
-                        onPress={(e) => {
-                          e.stopPropagation?.();
-                          handleDecide(item, "APPROVED");
-                        }}
-                      >
-                        <Text style={styles.actionBtnText}>
-                          {decidingId === item.id ? "Processing..." : "Approve ✓"}
-                        </Text>
-                      </Pressable>
-
-                      <Pressable
-                        style={[styles.actionBtn, styles.btnDeny]}
+                        style={[styles.collectBtn, styles.collectBtnDecline]}
                         disabled={decidingId !== null}
                         onPress={(e) => {
                           e.stopPropagation?.();
                           handleDecide(item, "DENIED");
                         }}
                       >
-                        <Text style={styles.actionBtnText}>Deny ✕</Text>
+                        <Text style={styles.collectBtnDeclineText}>Decline ✕</Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={[styles.collectBtn, styles.collectBtnApprove]}
+                        disabled={decidingId !== null}
+                        onPress={(e) => {
+                          e.stopPropagation?.();
+                          handleDecide(item, "APPROVED");
+                        }}
+                      >
+                        <Text style={styles.collectBtnApproveText}>
+                          {decidingId === item.id ? "Processing..." : "Approve Payment ✓"}
+                        </Text>
                       </Pressable>
                     </View>
                   )}
@@ -1834,7 +1814,7 @@ export default function App() {
         {feedTab === "HISTORY" && (
           loadingHistory && historyApprovals.length === 0 ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator size="small" color="#2563EB" />
+              <ActivityIndicator size="small" color="#5F259F" />
               <Text style={styles.loadingText}>Loading transaction history...</Text>
             </View>
           ) : historyApprovals.length === 0 ? (
@@ -1863,66 +1843,47 @@ export default function App() {
               return (
                 <Pressable
                   key={`hist-${item.id}`}
-                  style={styles.historyCard}
+                  style={styles.historyPassbookCard}
                   onPress={() => setSelectedApproval(item)}
                 >
-                  <View style={styles.cardHeader}>
-                    <View>
-                      <View style={{ flexDirection: "row", alignItems: "center" }}>
-                        <Text style={styles.bankTag}>{item.source_bank || "Dummy Bank"}</Text>
-                        {item.transaction_type && (
-                          <Text style={styles.typeTag}>{item.transaction_type}</Text>
-                        )}
-                      </View>
-                      {formattedDate ? (
-                        <Text style={styles.historyDateText}>{formattedDate}</Text>
-                      ) : null}
+                  <View style={styles.historyPassbookRow}>
+                    <View style={styles.passbookIconBox}>
+                      <Text style={{ fontSize: 18 }}>🏦</Text>
                     </View>
-
-                    <View
-                      style={[
-                        styles.statusPill,
-                        item.status === "PENDING" && styles.statusPillPending,
-                        item.status === "APPROVED" && styles.statusPillApproved,
-                        item.status === "DENIED" && styles.statusPillDenied,
-                        item.status === "EXPIRED" && styles.statusPillExpired,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.statusPillText,
-                          item.status === "PENDING" && styles.statusTextPending,
-                          item.status === "APPROVED" && styles.statusTextApproved,
-                          item.status === "DENIED" && styles.statusTextDenied,
-                          item.status === "EXPIRED" && styles.statusTextExpired,
-                        ]}
-                      >
-                        {item.status}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.cardBody}>
-                    <Text style={styles.amountLabel}>AMOUNT</Text>
-                    <Text style={styles.amountValue}>
-                      {item.currency || "INR"} ₹{item.amount}
-                    </Text>
-                    <Text style={styles.recipientRow}>
-                      Beneficiary:{" "}
-                      <Text style={{ fontWeight: "700", color: "#0F172A" }}>
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={styles.passbookRecipientName}>
                         {item.recipient_name || "Merchant"}
                       </Text>
-                    </Text>
-                    {item.recipient_account_masked ? (
-                      <Text style={styles.accountRow}>
-                        To Account: {item.recipient_account_masked}
+                      <Text style={styles.passbookDateText}>
+                        {formattedDate} • {item.source_bank || "Bank"}
                       </Text>
-                    ) : null}
-                    {item.sender_account_masked ? (
-                      <Text style={styles.accountRow}>
-                        From Account: {item.sender_account_masked}
+                    </View>
+                    <View style={{ alignItems: "flex-end" }}>
+                      <Text style={styles.passbookAmount}>
+                        ₹{item.amount}
                       </Text>
-                    ) : null}
+                      <View
+                        style={[
+                          styles.statusPill,
+                          item.status === "PENDING" && styles.statusPillPending,
+                          item.status === "APPROVED" && styles.statusPillApproved,
+                          item.status === "DENIED" && styles.statusPillDenied,
+                          item.status === "EXPIRED" && styles.statusPillExpired,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.statusPillText,
+                            item.status === "PENDING" && styles.statusTextPending,
+                            item.status === "APPROVED" && styles.statusTextApproved,
+                            item.status === "DENIED" && styles.statusTextDenied,
+                            item.status === "EXPIRED" && styles.statusTextExpired,
+                          ]}
+                        >
+                          {item.status}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
 
                   {/* Reported Status Banner or Report Scam Button */}
@@ -1954,7 +1915,7 @@ export default function App() {
                         <Text style={styles.viewComplaintBtnText}>Ticket 📋</Text>
                       </Pressable>
                     </View>
-                  ) : (
+                  ) : !item.is_reported_fraud && (item.status === "DENIED" || item.status === "EXPIRED") ? (
                     <Pressable
                       style={styles.reportScamCardBtn}
                       onPress={(e) => {
@@ -1966,7 +1927,7 @@ export default function App() {
                         🚨 Report Scam to Cyber Cell (1930)
                       </Text>
                     </Pressable>
-                  )}
+                  ) : null}
                 </Pressable>
               );
             })
@@ -3038,184 +2999,189 @@ const styles = StyleSheet.create({
     color: "#16A34A",
   },
 
-  // Authenticated Top Bar
+  // Authenticated Top Bar (PhonePe / Paytm Header)
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
+    borderBottomColor: "#F1F5F9",
   },
-  brandRow: {
+  userProfileHeader: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
   },
-  smallLogo: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: "#EFF6FF",
+  avatarCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#5F259F",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 8,
   },
-  topBarBrand: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#0F172A",
+  avatarLetter: {
+    fontSize: 17,
+    fontWeight: "900",
+    color: "#FFFFFF",
   },
-  topBarSub: {
-    fontSize: 9,
+  userName: {
+    fontSize: 15,
     fontWeight: "800",
-    color: "#16A34A",
-    letterSpacing: 0.5,
+    color: "#1E293B",
+  },
+  verifiedTickCircle: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#059669",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 5,
+  },
+  userPhone: {
+    fontSize: 12,
+    color: "#64748B",
+    marginTop: 1,
   },
   deviceManageBtn: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: "#EFF6FF",
+    borderRadius: 20,
+    backgroundColor: "#F3E8FF",
+    borderWidth: 1,
+    borderColor: "#E9D5FF",
   },
   deviceManageText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
-    color: "#2563EB",
+    color: "#6B21A8",
   },
   signOutButton: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: 20,
     backgroundColor: "#FEE2E2",
   },
   signOutText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
     color: "#DC2626",
   },
 
   mainScrollView: {
     flex: 1,
+    backgroundColor: "#F8FAFC",
   },
   mainScrollContent: {
     padding: 16,
     paddingBottom: 40,
   },
 
-  // Executive Hero Security Card
-  heroSecurityCard: {
-    backgroundColor: "#0F172A",
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#1E293B",
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  heroSecurityCardTop: {
+  // Security Guard Banner (PhonePe Guard Banner)
+  guardBanner: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#F5F3FF",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#DDD6FE",
+    marginBottom: 14,
   },
-  heroAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#1E293B",
-    borderWidth: 1.5,
-    borderColor: "#38BDF8",
+  guardBannerIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#EDE9FE",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
   },
-  heroAvatarText: {
-    fontSize: 18,
-    fontWeight: "900",
-    color: "#38BDF8",
-  },
-  heroUserName: {
-    fontSize: 16,
+  guardBannerTitle: {
+    fontSize: 14,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: "#4C1D95",
   },
-  heroUserPhone: {
-    fontSize: 12,
-    color: "#94A3B8",
-    marginTop: 2,
-    letterSpacing: 0.5,
-  },
-  heroStatusBadge: {
+  guardActiveBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#064E3B",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#059669",
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
   },
-  heroStatusDot: {
-    width: 6,
-    height: 6,
+  guardActiveDot: {
+    width: 5,
+    height: 5,
     borderRadius: 3,
-    backgroundColor: "#10B981",
-    marginRight: 6,
+    backgroundColor: "#16A34A",
+    marginRight: 4,
   },
-  heroStatusText: {
-    fontSize: 10,
-    fontWeight: "900",
-    color: "#34D399",
-    letterSpacing: 1,
-  },
-  heroSecurityDivider: {
-    height: 1,
-    backgroundColor: "#1E293B",
-    marginVertical: 14,
-  },
-  heroSecurityStatsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  heroStatItem: {
-    flex: 1,
-  },
-  heroStatDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: "#1E293B",
-    marginHorizontal: 12,
-  },
-  heroStatLabel: {
+  guardActiveText: {
     fontSize: 9,
-    fontWeight: "800",
-    color: "#64748B",
-    letterSpacing: 0.8,
-    marginBottom: 4,
+    fontWeight: "900",
+    color: "#15803D",
   },
-  heroStatValue: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#E2E8F0",
+  guardBannerSub: {
+    fontSize: 11,
+    color: "#6D28D9",
+    marginTop: 2,
+    lineHeight: 15,
   },
 
-  // Bank Accounts Section
+  // Services Grid (PhonePe 3-service row)
+  servicesGrid: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 16,
+  },
+  serviceTile: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  serviceTileIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  serviceTileTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#1E293B",
+  },
+  serviceTileSub: {
+    fontSize: 10,
+    color: "#64748B",
+    marginTop: 1,
+  },
+
+  // Bank Accounts Section (PhonePe UPI / Payment Instruments)
   sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 10,
-    marginTop: 4,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "800",
     color: "#0F172A",
-    letterSpacing: 0.2,
   },
   sectionCountPill: {
     backgroundColor: "#E2E8F0",
@@ -3225,22 +3191,22 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   sectionCountText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "800",
     color: "#334155",
   },
   linkNewBankBtn: {
-    backgroundColor: "#EFF6FF",
+    backgroundColor: "#F3E8FF",
     borderWidth: 1,
-    borderColor: "#BFDBFE",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    borderColor: "#DDD6FE",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
   },
   linkNewBankBtnText: {
     fontSize: 11,
     fontWeight: "800",
-    color: "#2563EB",
+    color: "#5F259F",
   },
   emptyBankCard: {
     flexDirection: "row",
@@ -3249,15 +3215,15 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     borderWidth: 1.5,
-    borderColor: "#BFDBFE",
+    borderColor: "#E2E8F0",
     borderStyle: "dashed",
-    marginBottom: 14,
+    marginBottom: 16,
   },
   emptyBankIconBox: {
     width: 42,
     height: 42,
     borderRadius: 12,
-    backgroundColor: "#EFF6FF",
+    backgroundColor: "#F3E8FF",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -3265,7 +3231,7 @@ const styles = StyleSheet.create({
   emptyBankTitle: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#1E3A8A",
+    color: "#1E293B",
   },
   emptyBankSub: {
     fontSize: 11,
@@ -3274,10 +3240,10 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
   emptyBankActionPill: {
-    backgroundColor: "#2563EB",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    backgroundColor: "#5F259F",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
     marginLeft: 8,
   },
   emptyBankActionText: {
@@ -3292,21 +3258,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
     marginBottom: 10,
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   bankAccountCardTop: {
     flexDirection: "row",
     alignItems: "center",
   },
   bankIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: "#F1F5F9",
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: "#F3E8FF",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -3314,20 +3280,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     color: "#0F172A",
-  },
-  shieldVerifiedBadge: {
-    backgroundColor: "#DCFCE7",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: "#86EFAC",
-  },
-  shieldVerifiedText: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: "#15803D",
-    letterSpacing: 0.5,
   },
   bankAccountMeta: {
     fontSize: 12,
@@ -3338,8 +3290,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FEF2F2",
     borderWidth: 1,
     borderColor: "#FECACA",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 8,
     marginLeft: 8,
   },
@@ -3347,99 +3299,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     color: "#DC2626",
-  },
-  bankAccountCardBottom: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 10,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
-  },
-  bankAccountInterceptStatus: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#059669",
-  },
-  bankAccountRefId: {
-    fontSize: 10,
-    color: "#94A3B8",
-    fontWeight: "600",
-  },
-
-  // Bound Hardware & Alert Quick Row
-  hardwareQuickRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 16,
-    marginTop: 4,
-  },
-  hardwareActionCard: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  hardwareActionTitle: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#0F172A",
-  },
-  hardwareActionSub: {
-    fontSize: 10,
-    color: "#64748B",
-    marginTop: 1,
-  },
-  hardwareActiveTag: {
-    backgroundColor: "#DCFCE7",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: "#86EFAC",
-    marginLeft: 6,
-  },
-  hardwareActiveTagText: {
-    fontSize: 8,
-    fontWeight: "900",
-    color: "#15803D",
-  },
-  hardwareAlertCard: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FEF3C7",
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#FDE68A",
-  },
-  hardwareAlertTitle: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#92400E",
-  },
-  hardwareAlertSub: {
-    fontSize: 10,
-    color: "#B45309",
-    marginTop: 1,
-  },
-  alertBuzzBadge: {
-    backgroundColor: "#F59E0B",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginLeft: 6,
-  },
-  alertBuzzBadgeText: {
-    fontSize: 9,
-    fontWeight: "900",
-    color: "#FFFFFF",
   },
 
   // Protection & Info Banners
@@ -3468,29 +3327,50 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Feed Section Header
+  // Feed Tab Selector
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: "#E2E8F0",
+    borderRadius: 12,
+    padding: 3,
+    marginVertical: 14,
+    gap: 4,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+  },
+  tabButtonActive: {
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tabButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#64748B",
+  },
+  tabButtonTextActive: {
+    color: "#5F259F",
+    fontWeight: "800",
+  },
+
   feedHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   feedTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: "800",
     color: "#0F172A",
-  },
-  badgePendingCount: {
-    backgroundColor: "#FEF3C7",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    marginLeft: 8,
-  },
-  pendingCountText: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#B45309",
   },
   refreshButton: {
     paddingHorizontal: 10,
@@ -3499,7 +3379,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F5F9",
   },
   refreshButtonText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
     color: "#475569",
   },
@@ -3537,49 +3417,141 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   emptyRefreshButton: {
-    backgroundColor: "#EFF6FF",
+    backgroundColor: "#F3E8FF",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#BFDBFE",
+    borderColor: "#DDD6FE",
   },
   emptyRefreshText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#2563EB",
+    color: "#5F259F",
   },
 
-  // Approval Card
-  approvalCard: {
+  // Collect Request Card (PhonePe / Paytm Mandate style)
+  collectRequestCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
     borderWidth: 1,
     borderColor: "#E2E8F0",
+    marginBottom: 12,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  cardHeader: {
+  collectTopStrip: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 10,
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: "#FDE68A",
   },
-  bankTag: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#0F172A",
-    marginRight: 6,
+  collectTopStripText: {
+    fontSize: 10,
+    fontWeight: "900",
+    color: "#92400E",
+    letterSpacing: 0.5,
   },
-  typeTag: {
+  collectBody: {
+    padding: 14,
+  },
+  collectMerchantRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  merchantIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#F1F5F9",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  collectPayingToLabel: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#475569",
-    backgroundColor: "#F1F5F9",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    color: "#94A3B8",
+    textTransform: "uppercase",
   },
+  collectRecipientName: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  collectFromAccount: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 1,
+  },
+  collectAmount: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#0F172A",
+  },
+  collectCurrency: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#64748B",
+  },
+  collectTimerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+  },
+  collectTimerText: {
+    fontSize: 11,
+    color: "#D97706",
+  },
+  collectReviewLink: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#5F259F",
+  },
+  collectActionRow: {
+    flexDirection: "row",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+  },
+  collectBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  collectBtnDecline: {
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  collectBtnDeclineText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#475569",
+  },
+  collectBtnApprove: {
+    backgroundColor: "#059669",
+  },
+  collectBtnApproveText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+
+  // Status Pills
   statusPill: {
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -3614,83 +3586,49 @@ const styles = StyleSheet.create({
     color: "#64748B",
   },
 
-  cardBody: {
-    marginVertical: 4,
+  // Passbook History Card (Paytm / PhonePe Passbook)
+  historyPassbookCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    marginBottom: 10,
   },
-  amountLabel: {
-    fontSize: 10,
+  historyPassbookRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  passbookIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: "#F1F5F9",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  passbookRecipientName: {
+    fontSize: 14,
     fontWeight: "800",
-    color: "#94A3B8",
-    letterSpacing: 0.5,
-  },
-  amountValue: {
-    fontSize: 24,
-    fontWeight: "900",
     color: "#0F172A",
-    marginVertical: 2,
   },
-  recipientRow: {
-    fontSize: 13,
-    color: "#475569",
-    marginTop: 2,
-  },
-  accountRow: {
-    fontSize: 12,
+  passbookDateText: {
+    fontSize: 11,
     color: "#64748B",
     marginTop: 2,
   },
-
-  cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 12,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
-  },
-  countdownRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  countdownTimer: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#D97706",
-  },
-  resolvedNote: {
-    fontSize: 11,
-    color: "#94A3B8",
-    fontStyle: "italic",
-  },
-  viewDetailsLink: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#2563EB",
+  passbookAmount: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0F172A",
+    marginBottom: 4,
   },
 
-  cardActionRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 12,
-  },
-  actionBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   btnApprove: {
-    backgroundColor: "#16A34A",
+    backgroundColor: "#059669",
   },
   btnDeny: {
     backgroundColor: "#DC2626",
-  },
-  actionBtnText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#FFFFFF",
   },
 
   // Modal Styles
@@ -3851,53 +3789,11 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#DC2626",
   },
-
-  // Feed Tab Switcher
-  tabContainer: {
-    flexDirection: "row",
-    backgroundColor: "#F1F5F9",
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 16,
-    gap: 6,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 8,
-  },
-  tabButtonActive: {
-    backgroundColor: "#2563EB",
-    shadowColor: "#2563EB",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  tabButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#64748B",
-  },
-  tabButtonTextActive: {
-    color: "#FFFFFF",
-  },
-
-  // History Cards
-  historyCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  historyDateText: {
+  resolvedNote: {
     fontSize: 11,
-    color: "#94A3B8",
-    marginTop: 4,
+    color: "#64748B",
+    fontStyle: "italic",
+    marginTop: 6,
   },
   reportedBadgeRow: {
     flexDirection: "row",
