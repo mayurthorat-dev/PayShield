@@ -57,7 +57,7 @@ class Command(BaseCommand):
                         "account_number_masked": item["masked_acc"],
                         "account_type": "SAVINGS",
                         "is_verified": True,
-                        "status": "VERIFIED",
+                        "verification_status": "VERIFIED",
                         "is_active": True,
                     },
                 )
