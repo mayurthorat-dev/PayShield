@@ -87,24 +87,31 @@ def initiate_link_account(request):
     bank_account_id = bank_data["bank_account_id"]
     bank_customer_id = bank_data["bank_customer_id"]
 
-    # Check for duplicate active links
+    # Check for duplicate links (active or inactive)
     existing_link = LinkedBankAccount.objects.filter(
         bank_name=bank_name,
         bank_account_id=bank_account_id,
-        is_active=True,
     ).first()
 
     if existing_link:
-        if existing_link.user != user:
+        if existing_link.user != user and existing_link.is_active:
             return Response(
                 {"error": "This bank account is already linked to another PayShield user."},
                 status=status.HTTP_409_CONFLICT,
             )
-        if existing_link.is_verified:
+        if existing_link.user == user and existing_link.is_active and existing_link.is_verified:
             return Response(
                 {"error": "This bank account is already linked and verified."},
                 status=status.HTTP_409_CONFLICT,
             )
+        existing_link.user = user
+        existing_link.is_active = True
+        existing_link.bank_customer_id = bank_customer_id
+        existing_link.account_number_masked = bank_data["account_number_masked"]
+        existing_link.account_type = bank_data.get("account_type", "SAVINGS")
+        existing_link.is_verified = False
+        existing_link.verification_status = "UNVERIFIED"
+        existing_link.save()
         link = existing_link
     else:
         # Create unverified link per Rule 8
@@ -224,20 +231,25 @@ def link_and_verify_account(request):
     bank_account_id = bank_data["bank_account_id"]
     bank_customer_id = bank_data["bank_customer_id"]
 
-    # Check duplicate link constraints
+    # Check duplicate link constraints (active or previously unlinked)
     existing_link = LinkedBankAccount.objects.filter(
         bank_name=bank_name,
         bank_account_id=bank_account_id,
-        is_active=True,
     ).first()
 
     if existing_link:
-        if existing_link.user != user:
+        if existing_link.user != user and existing_link.is_active:
             return Response(
                 {"error": "This bank account is already linked to another PayShield user."},
                 status=status.HTTP_409_CONFLICT,
             )
+        existing_link.user = user
+        existing_link.is_active = True
+        existing_link.bank_customer_id = bank_customer_id
+        existing_link.account_number_masked = bank_data["account_number_masked"]
+        existing_link.account_type = bank_data.get("account_type", "SAVINGS")
         existing_link.mark_verified()
+        existing_link.save()
         return Response(
             {
                 "message": "Bank account verified and updated.",
@@ -358,26 +370,28 @@ def link_discovered_account(request):
     bank_acc_id = bank_data["bank_account_id"]
     bank_cust_id = bank_data["bank_customer_id"]
 
+    # Check duplicate link constraints (active or previously unlinked)
     existing_link = LinkedBankAccount.objects.filter(
         bank_name=bank_name,
         bank_account_id=bank_acc_id,
-        is_active=True,
     ).first()
 
     if existing_link:
-        if existing_link.user != user:
+        if existing_link.user != user and existing_link.is_active:
             return Response(
                 {"error": "This bank account is already linked to another PayShield user."},
                 status=status.HTTP_409_CONFLICT,
             )
-        if existing_link.bank_customer_id != bank_cust_id:
-            existing_link.bank_customer_id = bank_cust_id
-            existing_link.save(update_fields=["bank_customer_id"])
-        if not existing_link.is_verified:
-            existing_link.mark_verified()
+        existing_link.user = user
+        existing_link.is_active = True
+        existing_link.bank_customer_id = bank_cust_id
+        existing_link.account_number_masked = bank_data["account_number_masked"]
+        existing_link.account_type = bank_data.get("account_type", "SAVINGS")
+        existing_link.mark_verified()
+        existing_link.save()
         return Response(
             {
-                "message": "Bank account already linked and verified.",
+                "message": "Bank account linked and verified successfully.",
                 "link": LinkedBankAccountSerializer(existing_link).data,
             },
             status=status.HTTP_200_OK,
