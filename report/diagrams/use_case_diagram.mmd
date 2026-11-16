@@ -1,0 +1,32 @@
+graph LR
+    User(("Banking Customer\n/ PayShield User"))
+    Attacker(("Threat Actor /\nOTP Interceptor"))
+    Bank(("Core Banking\nSystem"))
+    CyberDept(("National Cyber Crime\nHelpline (1930)"))
+
+    subgraph PayShieldSystem["PayShield Defense Boundary"]
+        UC1["UC1: Register & Verify Primary Phone"]
+        UC2["UC2: Hardware-Bind Single Active Device"]
+        UC3["UC3: Replace Lost/Stolen Device via Phone OTP"]
+        UC4["UC4: Link External Bank Account (Zero-Knowledge)"]
+        UC5["UC5: Receive Out-of-Band Push Notification"]
+        UC6["UC6: Approve / Deny Transaction in Real-Time"]
+        UC7["UC7: Report Cyber Crime & Generate Incident Reference"]
+        UC8["UC8: Enforce Single Active Device Exclusivity"]
+        UC9["UC9: Push Transaction Context via Webhook"]
+        UC10["UC10: Reconcile Expired Approvals Automatically"]
+    end
+
+    User --> UC1
+    User --> UC2
+    User --> UC3
+    User --> UC4
+    User --> UC5
+    User --> UC6
+    User --> UC7
+
+    Bank --> UC9
+    Bank --> UC10
+
+    Attacker -.->|"Attempts OTP Bypass / Interception"| UC6
+    UC7 --> CyberDept

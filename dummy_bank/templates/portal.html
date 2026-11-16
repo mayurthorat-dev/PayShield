@@ -577,6 +577,12 @@
         document.getElementById('liveTxRef').textContent = payshieldInfo.transaction_ref ? payshieldInfo.transaction_ref.slice(0, 8) + '...' : currentTransactionId.slice(0, 8) + '...';
         document.getElementById('liveStatusText').textContent = 'AWAITING_APPROVAL';
 
+        if (payshieldInfo.is_customer_linked === false) {
+          document.getElementById('statusSub').innerHTML = '<span class="text-amber-600 font-bold">⚠️ Notice:</span> This bank account is not linked to any active PayShield mobile app. Open PayShield on your phone and link this account to receive approval alerts.';
+        } else {
+          document.getElementById('statusSub').textContent = 'Open your mobile phone to review and authorize or deny this transaction.';
+        }
+
         // Start 60-second countdown
         if (payshieldInfo.expires_at) {
           expiresAtEpoch = new Date(payshieldInfo.expires_at).getTime();

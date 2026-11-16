@@ -1,0 +1,43 @@
+sequenceDiagram
+    autonumber
+    actor Customer as User (Physical Mobile Device)
+    participant App as PayShield Mobile Client
+    participant BankWeb as Bank Portal (Attacker / Web Session)
+    participant Bank as Dummy Bank Backend (8001)
+    participant PS as PayShield Gateway (8000)
+    participant Push as Expo / FCM Push Gateway
+
+    Note over BankWeb,Bank: Phase 1: Banking Transaction Initiated
+    BankWeb->>Bank: Initiate Fund Transfer (Amount, Beneficiary)
+    Bank->>Bank: Generate Banking OTP (status: OTP_PENDING)
+    Note over BankWeb: Attacker enters intercepted OTP
+    BankWeb->>Bank: POST /api/otp/verify/ (OTP Code)
+    Bank->>Bank: Verify OTP -> Status: AWAITING_APPROVAL
+
+    Note over Bank,PS: Phase 2: Out-of-Band Integration Push
+    Bank->>PS: POST /api/integration/transaction-context/ (X-Dummy-Bank-Token)
+    PS->>PS: Resolve verified LinkedBankAccount & active Device
+    PS->>PS: Create ApprovalRequest (status: PENDING, timer: 60s)
+    PS-->>Bank: 201 Created (approval_id, expires_at)
+
+    Note over PS,App: Phase 3: High Priority Push Alert
+    PS->>Push: Dispatch High-Priority Push Notification
+    Push->>Customer: Alert banner: "High-value transfer needs your approval"
+    Customer->>App: Tap Notification & Launch PayShield
+
+    Note over Customer,PS: Phase 4: Hardware-Bound Decision
+    App->>PS: GET /api/approvals/ (Authorization: Token, X-Device-ID)
+    PS->>PS: Validate Token age (< 24h) & verify active Device UUID
+    PS-->>App: 200 OK (Transaction details, live countdown timer)
+    Customer->>App: Review Details -> Tap "Deny" / "Approve"
+    App->>PS: POST /api/approvals/{id}/decide/ (decision: DENIED / APPROVED)
+    PS->>PS: Atomic DB Row Lock (select_for_update)
+    PS->>Bank: POST /api/transactions/decision/ (X-PayShield-Token, decision)
+    Bank->>Bank: Update Transaction Status (CANCELLED / COMPLETED)
+    Bank-->>PS: 200 OK
+    PS-->>App: 200 OK (Decision confirmed)
+    Note over Customer,App: Phase 5 (If Fraudulent): Instant Cyber Crime Report
+    Customer->>App: Tap "Report Cyber Crime"
+    App->>PS: POST /api/approvals/{id}/report-fraud/ (Category, Notes)
+    PS->>PS: Generate Reference (NCR-2026-XXXXXX) & Log Audit Event
+    PS-->>App: 201 Created (Complaint Ref, Helpline 1930, cybercrime.gov.in)

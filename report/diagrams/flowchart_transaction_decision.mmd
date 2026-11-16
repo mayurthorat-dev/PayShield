@@ -1,0 +1,30 @@
+flowchart TD
+    Start([Core Bank Verifies Banking OTP]) --> PushWebhook[POST /api/integration/transaction-context/\nDummy Bank -> PayShield]
+    PushWebhook --> AuthHeader{Valid X-Dummy-Bank-Token?}
+    AuthHeader -- No --> Reject401[401 Unauthorized]
+    AuthHeader -- Yes --> ResolveUser[Resolve LinkedBankAccount -> PayShieldUser]
+    ResolveUser --> CreateApproval[Create ApprovalRequest: status PENDING, timer 60s]
+    CreateApproval --> DispatchPush[Send High-Priority Push to Active Device via Expo/FCM]
+    DispatchPush --> UserNotification([User Phone Vibrates / Displays Banner])
+
+    UserNotification --> OpenApp[Customer Opens PayShield App]
+    OpenApp --> LoadApproval[Fetch Pending Request: Recipient, Amount, Masked Acc]
+    LoadApproval --> UserChoice{Customer Decision}
+
+    UserChoice -- User Taps APPROVE --> AtomicLockApprove[Atomic select_for_update Row Lock]
+    AtomicLockApprove --> CheckExpiredA{Is timer expired?}
+    CheckExpiredA -- Yes --> MarkExpiredA[Mark EXPIRED -> Inform Bank Cancelled]
+    CheckExpiredA -- No --> CallBankApprove[POST /api/transactions/decision/ -> APPROVED]
+    CallBankApprove --> CompleteTx[Dummy Bank Debits Funds & Completes Tx]
+
+    UserChoice -- User Taps DENY --> AtomicLockDeny[Atomic select_for_update Row Lock]
+    AtomicLockDeny --> CallBankDeny[POST /api/transactions/decision/ -> DENIED]
+    CallBankDeny --> CancelTx[Dummy Bank Aborts Tx & Releases Hold]
+    CancelTx --> AskScam{Report Cyber Crime?}
+    AskScam -- Yes --> SubmitIncident[POST /api/approvals/id/report-fraud/]
+    SubmitIncident --> ReturnNCR[Issue NCR-2026-XXXXXX Ref & 1930 Helpline Info]
+    AskScam -- No --> EndDone([Transaction Safeguarded])
+
+    UserChoice -- No Action within 60s --> LazyReconcile[Auto-Expiry Reconciler]
+    LazyReconcile --> CallBankExpire[POST /api/transactions/decision/ -> EXPIRED]
+    CallBankExpire --> CancelTx

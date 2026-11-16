@@ -1,0 +1,19 @@
+sequenceDiagram
+    autonumber
+    actor User as Registered Customer
+    participant App as PayShield Mobile Client
+    participant PS as PayShield Backend (Port 8000)
+    participant Bank as Dummy Bank (Port 8001)
+
+    User->>App: Open "Linked Bank Accounts" -> Tap "Discover Accounts"
+    App->>PS: GET /api/banking/accounts/ (Authorization: Token, X-Device-ID)
+    PS-->>App: Return currently linked verified accounts
+    User->>App: Enter Account Number to Link
+    App->>PS: POST /api/banking/accounts/initiate/ (phone, account_number)
+    PS->>PS: Create unverified link record (status: UNVERIFIED)
+    PS->>Bank: POST /api/accounts/verify-link/ (X-PayShield-Token, phone, account_number)
+    Note over Bank: Cross-verify phone matches account owner in core DB
+    Bank-->>PS: 200 OK (verified=True, bank_customer_id, masked_acc)
+    PS->>PS: Update link status to VERIFIED (verified_at = now)
+    PS-->>App: 201 Created (is_verified=True, masked_account: '********0101')
+    App->>User: Display Green Shield "Account Linked & Protected"

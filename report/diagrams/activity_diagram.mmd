@@ -1,0 +1,26 @@
+stateDiagram-v2
+    [*] --> TxReceived: Banking OTP Verified
+    TxReceived --> DeviceCheck: Find PayShieldUser & LinkedAccount
+    state DeviceCheck {
+        [*] --> CheckStatus
+        CheckStatus --> ActiveFound: Device Active & Bound
+        CheckStatus --> NoActiveDevice: No Active Device
+    }
+    NoActiveDevice --> TxAutoRejected: Cannot Authorize Without Bound Hardware
+    ActiveFound --> PushDispatch: Send Expo/FCM High-Priority Push
+    PushDispatch --> TimerRunning: Start 60-Second Countdown
+    state TimerRunning {
+        [*] --> AwaitUser
+        AwaitUser --> ApproveAction: User Taps Approve
+        AwaitUser --> DenyAction: User Taps Deny
+        AwaitUser --> TimeoutAction: 60s Elapsed Without Action
+    }
+    TimeoutAction --> ReconcileExpired: Mark EXPIRED & Notify Bank
+    DenyAction --> BankCancelled: Send CANCELLED to Bank
+    BankCancelled --> ScamPrompt: Prompt User: Report Cyber Crime?
+    ScamPrompt --> FileIncident: User Submits Scam Category
+    FileIncident --> GenerateNCR: Issue NCR-2026-XXXXXX & Helpline 1930
+    ApproveAction --> BankCompleted: Send COMPLETED to Bank
+    BankCompleted --> [*]
+    ReconcileExpired --> [*]
+    GenerateNCR --> [*]

@@ -1,0 +1,78 @@
+erDiagram
+    PayShieldUser ||--o{ Device : registers
+    PayShieldUser ||--o| Device : active_device
+    PayShieldUser ||--o{ LinkedBankAccount : links
+    PayShieldUser ||--o{ ApprovalRequest : authorizes
+    PayShieldUser ||--o{ SecurityAuditEvent : logs
+    LinkedBankAccount ||--o{ TransactionContext : maps
+    TransactionContext ||--|| ApprovalRequest : requires
+
+    BankCustomer ||--o{ BankAccount : owns
+    BankAccount ||--o{ Beneficiary : registers
+    BankAccount ||--o{ BankTransaction : originates
+    BankTransaction ||--o{ OTPChallenge : validates
+    BankTransaction ||--o{ BankTransactionEvent : audits
+
+    PayShieldUser {
+        bigint id PK
+        string phone_number UK
+        string full_name
+        boolean is_phone_verified
+        boolean is_active
+        datetime created_at
+    }
+
+    Device {
+        bigint id PK
+        uuid device_id UK
+        bigint user_id FK
+        bigint active_user_id FK_UK
+        string device_name
+        string platform
+        string status
+        string push_token
+        datetime registered_at
+    }
+
+    LinkedBankAccount {
+        bigint link_id PK
+        bigint user_id FK
+        string bank_name
+        uuid bank_customer_id
+        bigint bank_account_id
+        string account_number_masked
+        string verification_status
+    }
+
+    TransactionContext {
+        bigint id PK
+        uuid transaction_ref UK
+        string source_bank
+        string source_transaction_id UK
+        decimal amount
+        string currency
+        string sender_name
+        string recipient_name
+        boolean otp_verified
+    }
+
+    ApprovalRequest {
+        bigint id PK
+        bigint transaction_id FK_UK
+        bigint user_id FK
+        string status
+        boolean is_reported_fraud
+        string fraud_report_id
+        datetime expires_at
+        datetime decided_at
+    }
+
+    SecurityAuditEvent {
+        bigint event_id PK
+        string event_type
+        bigint user_id FK
+        string device_id
+        string ip_address
+        json details
+        datetime created_at
+    }

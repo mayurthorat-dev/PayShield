@@ -15,16 +15,23 @@ from .models import ApprovalRequest
 from .serializers import ApprovalRequestSerializer
 
 
-def _reconcile_expired_approvals(payshield_user):
+def _reconcile_expired_approvals(payshield_user=None):
     """
     Reconciles any pending approvals whose timer has expired, informing the upstream bank.
     """
     now = timezone.now()
-    expired_approvals = ApprovalRequest.objects.filter(
-        user=payshield_user,
-        status="PENDING",
-        expires_at__lte=now,
-    ).select_related("transaction")
+    from django.db.models import Q
+    if payshield_user:
+        expired_approvals = ApprovalRequest.objects.filter(
+            Q(user=payshield_user) | Q(user__isnull=True),
+            status="PENDING",
+            expires_at__lte=now,
+        ).select_related("transaction")
+    else:
+        expired_approvals = ApprovalRequest.objects.filter(
+            status="PENDING",
+            expires_at__lte=now,
+        ).select_related("transaction")
 
     callback_url = (
         os.getenv("DUMMY_BANK_DECISION_URL")
@@ -54,7 +61,7 @@ def _reconcile_expired_approvals(payshield_user):
         except requests.RequestException:
             continue
 
-        if bank_response.ok:
+        if bank_response.ok or bank_response.status_code in [404, 409]:
             approval.status = "EXPIRED"
             approval.save(update_fields=["status"])
 

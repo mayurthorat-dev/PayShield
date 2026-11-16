@@ -59,7 +59,6 @@ def receive_transaction_context(request):
                 LinkedBankAccount.objects.filter(
                     bank_customer_id=bank_customer_id,
                     bank_account_id=bank_account_id,
-                    bank_name=source_bank,
                     is_verified=True,
                     is_active=True,
                     user__is_active=True,
@@ -73,7 +72,6 @@ def receive_transaction_context(request):
             linked_account = (
                 LinkedBankAccount.objects.filter(
                     bank_account_id=bank_account_id,
-                    bank_name=source_bank,
                     is_verified=True,
                     is_active=True,
                     user__is_active=True,

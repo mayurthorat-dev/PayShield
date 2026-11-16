@@ -81,14 +81,14 @@ def receive_payshield_decision(request):
                 status=status.HTTP_409_CONFLICT,
             )
             
-        if bank_tx.payshield_expires_at is None:
-            return Response(
-                {"error": "PayShield approval expiry is missing."},
-                status=status.HTTP_409_CONFLICT,
-            )
-            
         # Handle explicitly passed EXPIRED decision or time-based expiration check
-        if decision == "EXPIRED" or timezone.now() >= bank_tx.payshield_expires_at:
+        is_expired = False
+        if decision == "EXPIRED":
+            is_expired = True
+        elif bank_tx.payshield_expires_at and timezone.now() >= bank_tx.payshield_expires_at:
+            is_expired = True
+
+        if is_expired:
             bank_tx.status = "CANCELLED"
             bank_tx.save(update_fields=["status", "updated_at"])
 
@@ -218,7 +218,7 @@ def portal_data_api(request):
     accounts = (
         BankAccount.objects.filter(status="ACTIVE")
         .select_related("customer")
-        .order_by("account_id")[:102]
+        .order_by("-account_id")
     )
 
     acc_list = []
@@ -273,6 +273,28 @@ def transaction_status_api(request, transaction_id):
         ).get(transaction_id=transaction_id)
     except BankTransaction.DoesNotExist:
         return Response({"error": "Transaction not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    # Auto-expire if in AWAITING_APPROVAL and deadline has passed (or timed out after 60s)
+    now = timezone.now()
+    is_expired = False
+    if tx.status == "AWAITING_APPROVAL":
+        if tx.payshield_expires_at and now >= tx.payshield_expires_at:
+            is_expired = True
+        elif not tx.payshield_expires_at and (now - tx.created_at).total_seconds() > 60:
+            is_expired = True
+
+    if is_expired:
+        with db_transaction.atomic():
+            locked_tx = BankTransaction.objects.select_for_update().get(transaction_id=transaction_id)
+            if locked_tx.status == "AWAITING_APPROVAL":
+                locked_tx.status = "CANCELLED"
+                locked_tx.save(update_fields=["status", "updated_at"])
+                BankTransactionEvent.objects.create(
+                    transaction=locked_tx,
+                    event_type="PAYSHIELD_APPROVAL_EXPIRED",
+                    description="PayShield 60-second window expired; transaction cancelled.",
+                )
+                tx.status = "CANCELLED"
 
     recipient_name = tx.beneficiary.recipient_name if tx.beneficiary else "Merchant"
     recipient_acc = tx.beneficiary.recipient_account_number if tx.beneficiary else "N/A"

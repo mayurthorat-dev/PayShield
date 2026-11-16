@@ -1,0 +1,42 @@
+graph TB
+    subgraph UserDevice["Customer Hardware Device (Trusted Enclave)"]
+        MobileApp["PayShield React Native Client\n(Expo 58 / TypeScript)"]
+        SecureStore["expo-secure-store\n(Android Keystore / iOS Keychain)\nStores Device UUID"]
+        NotificationHandler["expo-notifications Client\n(High Priority Channel)"]
+        MobileApp --- SecureStore
+        MobileApp --- NotificationHandler
+    end
+
+    subgraph CoreBanking["Dummy Core Bank Simulator (Port 8001)"]
+        BankPortal["Web Banking Portal (portal.html)"]
+        BankCustomer["BankCustomer & BankAccount Models"]
+        BankOTP["Banking OTP Challenge Engine"]
+        TxEngine["BankTransaction State Machine\n(CREATED -> OTP_VERIFIED -> AWAITING_APPROVAL)"]
+        BankPortal --> BankOTP
+        BankOTP --> TxEngine
+    end
+
+    subgraph PayShieldServer["PayShield Security Gateway (Port 8000)"]
+        AuthModule["Token Auth & Dual-OTP\n(accounts.ExpiringTokenAuth)"]
+        DevicePolicy["One-Active-Device Enforcer\n(accounts.device_security)"]
+        AccountLinker["Privacy-Preserving Account Linker\n(banking.LinkedBankAccount)"]
+        ApprovalEngine["Out-of-Band Approval Engine\n(authorization.ApprovalRequest)"]
+        AuditTrail["Tamper-Evident Security Audit Log\n(audit.SecurityAuditEvent)"]
+        CyberCrimeReporter["Cyber Crime Incident Handler\n(NCR-2026-XXXXXX / 1930 Helpline)"]
+    end
+
+    subgraph PushGateway["Notification Infrastructure"]
+        FCM["Firebase Cloud Messaging (FCM)"]
+        ExpoPush["Expo Push Dispatch Service"]
+    end
+
+    BankPortal -.->|"1. Attacker/User initiates transfer"| BankOTP
+    TxEngine -->|"2. POST /api/integration/transaction-context/\n(X-Dummy-Bank-Token)"| ApprovalEngine
+    AccountLinker <-->|"Verify ownership\n(X-PayShield-Token)"| BankCustomer
+    ApprovalEngine -->|"3. Trigger High Priority Push"| ExpoPush
+    ExpoPush -->|"4. Deliver push alert"| NotificationHandler
+    MobileApp -->|"5. Authenticated Decision (Token + X-Device-ID)\nPOST /api/approvals/{id}/decide/"| ApprovalEngine
+    ApprovalEngine -->|"6. Callback Callback (X-PayShield-Token)\nPOST /api/transactions/decision/"| TxEngine
+    MobileApp -->|"7. Report Fraud\nPOST /api/approvals/{id}/report-fraud/"| CyberCrimeReporter
+    ApprovalEngine -.-> AuditTrail
+    DevicePolicy -.-> AuditTrail

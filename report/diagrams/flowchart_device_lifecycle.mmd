@@ -1,0 +1,20 @@
+flowchart TD
+    Start([User Logs In with Mobile & OTP]) --> FetchStatus[GET /api/devices/status/]
+    FetchStatus --> CheckRegistered{Is this Device UUID registered?}
+    CheckRegistered -- Yes --> CheckActive{Is status ACTIVE?}
+    CheckActive -- Yes --> AllowAccess[Grant Access to Approvals Dashboard]
+    CheckActive -- No / Revoked --> DenyForbidden[403 Forbidden: Device Revoked]
+
+    CheckRegistered -- No --> CheckExistingActive{Does user already have another ACTIVE device?}
+    CheckExistingActive -- No --> RegisterNew[POST /api/devices/register/\nStore UUID in SecureStore]
+    RegisterNew --> AllowAccess
+
+    CheckExistingActive -- Yes --> ShowConflict[409 Conflict: DEVICE_REPLACEMENT_REQUIRED]
+    ShowConflict --> PromptReplace[Prompt: Replace Active Device?]
+    PromptReplace -- User Cancels --> Terminate([Session Blocked])
+    PromptReplace -- User Confirms --> ReqReplaceOTP[POST /api/devices/replace/request-otp/]
+    ReqReplaceOTP --> EnterOTP[User enters 6-digit OTP sent to registered SIM]
+    EnterOTP --> PostReplace[POST /api/devices/replace/]
+    PostReplace --> RevokeOld[1. Mark Old Device REVOKED\n2. Invalidate Old Tokens\n3. Set active_user pointer to New Device]
+    RevokeOld --> IssueToken[Issue Fresh Auth Token]
+    IssueToken --> AllowAccess

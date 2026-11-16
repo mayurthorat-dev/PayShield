@@ -1,0 +1,97 @@
+classDiagram
+    class PayShieldUser {
+        +BigInt id
+        +User user
+        +String full_name
+        +String phone_number
+        +Boolean is_phone_verified
+        +Boolean is_active
+        +DateTime created_at
+        +create_user_with_phone()
+    }
+
+    class LoginOTPChallenge {
+        +BigInt challenge_id
+        +String phone_number
+        +String otp_hash
+        +DateTime expires_at
+        +Int attempts
+        +Int max_attempts
+        +String status
+        +is_expired() Boolean
+        +can_attempt() Boolean
+    }
+
+    class Device {
+        +BigInt id
+        +UUID device_id
+        +PayShieldUser user
+        +PayShieldUser active_user
+        +String device_name
+        +String platform
+        +String status
+        +String push_token
+        +DateTime registered_at
+        +DateTime last_active_at
+        +revoke(reason)
+    }
+
+    class LinkedBankAccount {
+        +BigInt link_id
+        +PayShieldUser user
+        +String bank_name
+        +UUID bank_customer_id
+        +BigInt bank_account_id
+        +String account_number_masked
+        +String account_type
+        +Boolean is_verified
+        +String verification_status
+        +mark_verified()
+        +revoke()
+    }
+
+    class TransactionContext {
+        +BigInt id
+        +UUID transaction_ref
+        +String source_bank
+        +String source_transaction_id
+        +String transaction_type
+        +String sender_name
+        +String sender_account_masked
+        +UUID bank_customer_id
+        +BigInt bank_account_id
+        +Decimal amount
+        +String currency
+        +Boolean otp_verified
+        +DateTime received_at
+    }
+
+    class ApprovalRequest {
+        +BigInt id
+        +TransactionContext transaction
+        +PayShieldUser user
+        +String status
+        +Boolean is_reported_fraud
+        +String fraud_report_id
+        +DateTime expires_at
+        +DateTime decided_at
+    }
+
+    class SecurityAuditEvent {
+        +BigInt event_id
+        +String event_type
+        +PayShieldUser user
+        +String device_id
+        +String ip_address
+        +String user_agent
+        +JSON details
+        +DateTime created_at
+    }
+
+    PayShieldUser "1" --> "0..*" Device : registers
+    PayShieldUser "1" --> "0..1" Device : active_device
+    PayShieldUser "1" --> "0..*" LinkedBankAccount : owns
+    PayShieldUser "1" --> "0..*" ApprovalRequest : authorizes
+    TransactionContext "1" -- "1" ApprovalRequest : context
+    LinkedBankAccount "1" --> "0..*" TransactionContext : links
+    PayShieldUser "1" --> "0..*" SecurityAuditEvent : generates
